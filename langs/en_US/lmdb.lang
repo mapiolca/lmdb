@@ -1,0 +1,63 @@
+# Copyright (C) 2026 Pierre Ardoin <developpeur@lesmetiersdubatiment.fr>
+# English translations for LMDB module
+
+LmdbModuleName=Les Métiers du Bâtiment
+LmdbModuleDescription=LMDB features and document models
+LmdbModuleDescriptionLong=Internal Les Métiers du Bâtiment module grouping company-specific features and document models.
+LmdbSetup=LMDB setup
+LmdbSetupIntro=The module adds Les Métiers du Bâtiment features and document models. The LMDB Sponge invoice PDF model is available without being forced automatically.
+LmdbCompatibility=LMDB compatibility
+LmdbAbout=About LMDB
+BackToModuleList=Back to module list
+
+PDFLmdbSpongeDescription=LMDB invoice PDF model based on Sponge, with corrected translations and service periods
+LmdbInvoicePdfModel=Invoice PDF model
+LmdbInvoicePdfModelTooltip=PDF model based on Sponge with LMDB corrections
+LmdbInvoicePdfModelRegistered=The LMDB Sponge invoice PDF model was registered.
+LmdbInvoicePdfModelNotRegistered=The PDF model is not registered for the current environment.
+LmdbInvoicePdfModelUnavailable=The LMDB Sponge invoice PDF model is not available in this environment.
+LmdbDefaultInvoicePdfModelSaved=The default invoice PDF model was saved.
+ErrorFailedToSaveDefaultInvoicePdfModel=Failed to save the default invoice PDF model.
+DocumentModelCode=Document model code
+CurrentDefaultInvoicePdfModel=Current default invoice model
+RegisterDocumentModel=Register document model again
+SetAsDefaultInvoicePdfModel=Set as default invoice PDF model
+AlreadySelectedAsDefaultInvoicePdfModel=Already selected as default invoice PDF model
+
+Environment=Environment
+DetectedPhpVersion=Detected PHP version
+DetectedDolibarrVersion=Detected Dolibarr version
+MinimumPhpVersion=Minimum supported PHP version
+MinimumDolibarrVersion=Minimum supported Dolibarr version
+Feature=Feature
+Reason=Reason
+Available=Available
+Unavailable=Unavailable
+FeatureAvailable=Available
+RequiresPhp80=PHP 8.0 or later is required
+RequiresDolibarr20=Dolibarr 20.0 or later is required
+RequiresInvoiceModule=The Invoices module must be enabled
+RequiresSpongeModel=The native Sponge PDF model must be available
+LmdbFeatureInvoicePdfModel=LMDB Sponge invoice PDF model
+LmdbFeatureInvoicePdfModelDescription=Adds an invoice PDF model based on Sponge with corrected translations and service periods.
+
+ModuleInformation=Module information
+ModuleName=Module name
+Publisher=Publisher
+MainFeatures=Main features
+UsefulLinks=Useful links
+LmdbCompatibilitySummary=Dolibarr 20.0+ and PHP 8.0+
+LmdbDependenciesSummary=The Invoices module is required to use the invoice PDF model. The native Sponge model must be available.
+LmdbMainFeaturesSummary=Selectable LMDB Sponge invoice PDF model available through Dolibarr document models.
+
+DateFromTo=From %s to %s
+DateFrom=From %s
+DateUntil=Until %s
+RefCustomer=Customer ref.
+Project=Project
+DateDue=Due date
+AmountInCurrency=Amounts in %s
+TotalHTBeforeDiscount=Total before discount (excl. tax)
+TotalDiscount=Total discount
+TotalHTShort=Total excl. tax
+Designation=Description

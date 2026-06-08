@@ -1,0 +1,63 @@
+# Copyright (C) 2026 Pierre Ardoin <developpeur@lesmetiersdubatiment.fr>
+# French translations for LMDB module
+
+LmdbModuleName=Les Métiers du Bâtiment
+LmdbModuleDescription=Fonctionnalités et modèles documentaires LMDB
+LmdbModuleDescriptionLong=Module interne Les Métiers du Bâtiment regroupant des fonctionnalités et modèles de documents adaptés aux besoins de la société.
+LmdbSetup=Configuration LMDB
+LmdbSetupIntro=Le module ajoute des fonctionnalités et modèles documentaires propres à Les Métiers du Bâtiment. Le modèle PDF de facture LMDB Sponge est disponible sans être imposé automatiquement.
+LmdbCompatibility=Compatibilité LMDB
+LmdbAbout=À propos de LMDB
+BackToModuleList=Retour vers la liste des modules
+
+PDFLmdbSpongeDescription=Modèle de facture PDF LMDB basé sur Sponge, avec traductions et périodes de service corrigées
+LmdbInvoicePdfModel=Modèle PDF de facture
+LmdbInvoicePdfModelTooltip=Modèle PDF basé sur Sponge avec corrections LMDB
+LmdbInvoicePdfModelRegistered=Le modèle PDF de facture LMDB Sponge a été enregistré.
+LmdbInvoicePdfModelNotRegistered=Le modèle PDF n'est pas enregistré pour l'environnement courant.
+LmdbInvoicePdfModelUnavailable=Le modèle PDF de facture LMDB Sponge n'est pas disponible dans cet environnement.
+LmdbDefaultInvoicePdfModelSaved=Le modèle PDF de facture par défaut a été enregistré.
+ErrorFailedToSaveDefaultInvoicePdfModel=Impossible d'enregistrer le modèle PDF de facture par défaut.
+DocumentModelCode=Code du modèle documentaire
+CurrentDefaultInvoicePdfModel=Modèle de facture par défaut actuel
+RegisterDocumentModel=Réenregistrer le modèle documentaire
+SetAsDefaultInvoicePdfModel=Définir comme modèle de facture par défaut
+AlreadySelectedAsDefaultInvoicePdfModel=Déjà sélectionné comme modèle de facture par défaut
+
+Environment=Environnement
+DetectedPhpVersion=Version PHP détectée
+DetectedDolibarrVersion=Version Dolibarr détectée
+MinimumPhpVersion=Version PHP minimale supportée
+MinimumDolibarrVersion=Version Dolibarr minimale supportée
+Feature=Fonctionnalité
+Reason=Motif
+Available=Disponible
+Unavailable=Indisponible
+FeatureAvailable=Disponible
+RequiresPhp80=PHP 8.0 ou supérieur est requis
+RequiresDolibarr20=Dolibarr 20.0 ou supérieur est requis
+RequiresInvoiceModule=Le module Factures doit être actif
+RequiresSpongeModel=Le modèle PDF natif Sponge doit être présent
+LmdbFeatureInvoicePdfModel=Modèle PDF de facture LMDB Sponge
+LmdbFeatureInvoicePdfModelDescription=Ajoute un modèle PDF de facture basé sur Sponge avec traductions et périodes de service corrigées.
+
+ModuleInformation=Informations du module
+ModuleName=Nom du module
+Publisher=Éditeur
+MainFeatures=Fonctionnalités principales
+UsefulLinks=Liens utiles
+LmdbCompatibilitySummary=Dolibarr 20.0+ et PHP 8.0+
+LmdbDependenciesSummary=Le module Factures est nécessaire pour utiliser le modèle PDF de facture. Le modèle natif Sponge doit être disponible.
+LmdbMainFeaturesSummary=Modèle PDF de facture LMDB Sponge sélectionnable depuis les modèles de documents Dolibarr.
+
+DateFromTo=Du %s au %s
+DateFrom=À partir du %s
+DateUntil=Jusqu'au %s
+RefCustomer=Réf. client
+Project=Projet
+DateDue=Date d'échéance
+AmountInCurrency=Montants exprimés en %s
+TotalHTBeforeDiscount=Total HT avant remise
+TotalDiscount=Remise totale
+TotalHTShort=Total HT
+Designation=Désignation
