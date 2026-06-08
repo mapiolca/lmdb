@@ -18,6 +18,12 @@ htdocs/custom/lmdb
 
 Activer ensuite le module **LMDB** depuis la liste des modules Dolibarr.
 
+Le pictogramme du module est fourni dans :
+
+```text
+img/object_lmdb.png
+```
+
 ## Fonctionnalités
 
 ### Modèle PDF de facture `lmdbsponge`
@@ -29,6 +35,7 @@ Corrections apportées :
 - fallbacks de traduction pour les clés visibles dans les factures PDF ;
 - correction du libellé français `À partir du %s` ;
 - correction de l'affichage des périodes de service lorsque `DateFromTo`, `DateFrom` ou `DateUntil` ne sont pas disponibles dans la langue de sortie.
+- chargement explicite des traductions et complément défensif des dates de service pour les factures générées depuis une facture récurrente, y compris par tâche automatique.
 
 Le modèle est enregistré comme modèle de document Dolibarr pour les factures, mais il n'est pas imposé comme modèle par défaut lors de l'activation du module.
 

@@ -71,8 +71,9 @@ if (class_exists('pdf_sponge')) {
 				$outputlangs = $langs;
 			}
 
-			$outputlangs->loadLangs(array('main', 'bills', 'products', 'dict', 'companies', 'lmdb@lmdb'));
+			lmdbPdfLoadInvoiceTranslationDomains($outputlangs);
 			lmdbPdfApplyTranslationFallbacks($outputlangs);
+			lmdbPdfEnsureRecurringServiceDates($object);
 
 			$method = new ReflectionMethod('pdf_sponge', 'write_file');
 			if ($method->getNumberOfParameters() >= 7) {
