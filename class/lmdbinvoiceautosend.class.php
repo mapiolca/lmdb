@@ -19,6 +19,43 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/CMailFile.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
 
 /**
+ * Invoice object with the transient mail properties used by Dolibarr triggers.
+ *
+ * Dolibarr v20 sets these properties dynamically from actions_sendmails.inc.php.
+ * Declaring them here keeps the external module statically analysable without
+ * changing or copying the core Facture class.
+ */
+class LmdbMailFacture extends Facture
+{
+	/** @var string */
+	public $trackid = '';
+
+	/** @var string */
+	public $elementtype = '';
+
+	/** @var array<int,string> */
+	public $attachedfiles = array();
+
+	/** @var string */
+	public $email_msgid = '';
+
+	/** @var string */
+	public $email_from = '';
+
+	/** @var string */
+	public $email_subject = '';
+
+	/** @var string */
+	public $email_to = '';
+
+	/** @var string */
+	public $email_tocc = '';
+
+	/** @var string */
+	public $email_tobcc = '';
+}
+
+/**
  * Automatic recurring invoice email service.
  */
 class LmdbInvoiceAutoSend
@@ -27,6 +64,7 @@ class LmdbInvoiceAutoSend
 	const STATUS_SENT = 1;
 	const STATUS_ERROR = 2;
 	const STATUS_REVIEW = 3;
+	const PROCESSING_STALE_DELAY = 21600;
 
 	const ORIGIN_AUTOMATIC = 'automatic';
 	const ORIGIN_MANUAL = 'manual';
@@ -96,10 +134,9 @@ class LmdbInvoiceAutoSend
 			$maxPerRun = 100;
 		}
 
-		$reviewed = $this->markStaleProcessingForReview($entity);
-		if ($reviewed < 0) {
+		$movedToReview = $this->markStaleProcessingForReview($entity);
+		if ($movedToReview < 0) {
 			$this->errors[] = $this->db->lasterror();
-			$reviewed = 0;
 		}
 
 		$candidates = $this->fetchCandidateInvoices($entity, $minimumInvoiceId, $maxPerRun);
@@ -129,22 +166,35 @@ class LmdbInvoiceAutoSend
 				continue;
 			}
 
-			$result = $this->sendInvoice($invoiceId, $templateId, $entity, $user, $langs);
+			try {
+				$result = $this->sendInvoice($invoiceId, $templateId, $entity, $user, $langs);
+			} catch (Throwable $exception) {
+				dol_syslog(__METHOD__.': unexpected '.get_class($exception).' for invoice id='.$invoiceId, LOG_ERR);
+				$result = $this->recordFailure($entity, $invoiceId, $langs->trans('LmdbAutoInvoiceSendUnexpectedError', $invoiceId));
+			}
 			if ($result > 0) {
 				$sent++;
+			} elseif ($result === 0) {
+				$skipped++;
 			} else {
 				$failed++;
 			}
 		}
 
-		$this->output = $langs->trans('LmdbAutoInvoiceSendCronResult', $analysed, $sent, $skipped, $failed, $reviewed);
+		$reviewCount = $this->countLedgerRows($entity, self::STATUS_REVIEW);
+		if ($reviewCount < 0) {
+			$this->errors[] = $this->db->lasterror();
+			$reviewCount = 0;
+		}
+
+		$this->output = $langs->trans('LmdbAutoInvoiceSendCronResult', $analysed, $sent, $skipped, $failed, $reviewCount);
 		if (!empty($this->errors)) {
 			$this->error = implode(' | ', $this->errors);
 		}
 
 		dol_syslog(__METHOD__.': '.$this->output, $failed > 0 ? LOG_WARNING : LOG_INFO);
 
-		return $failed;
+		return $failed > 0 || !empty($this->errors) ? max(1, $failed) : 0;
 	}
 
 	/**
@@ -253,7 +303,11 @@ class LmdbInvoiceAutoSend
 			return $resql ? 0 : -1;
 		}
 
-		$messageId = isset($invoice->email_msgid) ? (string) $invoice->email_msgid : '';
+		$invoiceValues = get_object_vars($invoice);
+		$messageId = isset($invoiceValues['email_msgid']) ? (string) $invoiceValues['email_msgid'] : '';
+		if ($messageId === '' && isset($invoice->context['email_msgid'])) {
+			$messageId = (string) $invoice->context['email_msgid'];
+		}
 		$templateId = (int) $obj->lmdb_template;
 		$now = dol_now();
 
@@ -262,8 +316,8 @@ class LmdbInvoiceAutoSend
 		$sql .= " VALUES (".$entity.", ".$invoiceId.", ".($templateId > 0 ? $templateId : 'NULL').", ".self::STATUS_SENT;
 		$sql .= ", '".$db->escape($origin)."', 1, '".$db->idate($now)."', '".$db->idate($now)."', '".$db->idate($now)."'";
 		$sql .= ", ".((int) $user->id).", ".($messageId !== '' ? "'".$db->escape($messageId)."'" : 'NULL').")";
-		$sql .= " ON DUPLICATE KEY UPDATE status = ".self::STATUS_SENT;
-		$sql .= ", origin = IF(status = ".self::STATUS_SENT.", origin, VALUES(origin))";
+		$sql .= " ON DUPLICATE KEY UPDATE origin = IF(date_sent IS NULL, VALUES(origin), origin)";
+		$sql .= ", status = ".self::STATUS_SENT;
 		$sql .= ", date_sent = COALESCE(date_sent, VALUES(date_sent))";
 		$sql .= ", fk_user = VALUES(fk_user)";
 		$sql .= ", message_id = COALESCE(VALUES(message_id), message_id)";
@@ -370,14 +424,16 @@ class LmdbInvoiceAutoSend
 	 */
 	private function sendInvoice($invoiceId, $templateId, $entity, $user, $langs)
 	{
-		$invoice = new Facture($this->db);
+		global $conf;
+
+		$invoice = new LmdbMailFacture($this->db);
 		$result = $invoice->fetch($invoiceId);
 		if ($result <= 0 || (int) $invoice->entity !== $entity) {
 			return $this->recordFailure($entity, $invoiceId, $langs->trans('LmdbAutoInvoiceSendInvoiceFetchError', $invoiceId));
 		}
 
 		if ((int) $invoice->status !== Facture::STATUS_VALIDATED || !empty($invoice->paye) || empty($invoice->fk_fac_rec_source)) {
-			return $this->recordFailure($entity, $invoiceId, $langs->trans('LmdbAutoInvoiceSendInvoiceNoLongerEligible', $invoice->ref));
+			return $this->recordReview($entity, $invoiceId, $langs->trans('LmdbAutoInvoiceSendInvoiceNoLongerEligible', $invoice->ref));
 		}
 
 		$result = $invoice->fetch_thirdparty();
@@ -389,7 +445,7 @@ class LmdbInvoiceAutoSend
 			return $this->recordFailure($entity, $invoiceId, $langs->trans('LmdbAutoInvoiceSendTemplateError', $invoice->ref));
 		}
 
-		$outputlangs = new Translate('', $GLOBALS['conf']);
+		$outputlangs = new Translate('', $conf);
 		$defaultLang = !empty($invoice->thirdparty->default_lang) ? $invoice->thirdparty->default_lang : $langs->defaultlang;
 		$outputlangs->setDefaultLang($defaultLang);
 		$outputlangs->loadLangs(array('main', 'bills', 'products', 'mails', 'lmdb@lmdb'));
@@ -409,7 +465,8 @@ class LmdbInvoiceAutoSend
 		$templateCc = make_substitutions((string) $template->email_tocc, $substitutionArray, $outputlangs, 1);
 		$templateBcc = make_substitutions((string) $template->email_tobcc, $substitutionArray, $outputlangs, 1);
 
-		$to = $this->getInvoiceRecipients($invoice);
+		$recipientData = $this->getInvoiceRecipients($invoice);
+		$to = $recipientData['emails'];
 		if ($templateTo !== '') {
 			$to[] = $templateTo;
 		}
@@ -440,26 +497,26 @@ class LmdbInvoiceAutoSend
 		$trackId = 'inv'.$invoice->id;
 		$mail = new CMailFile($subject, $sendTo, $from, $content, $files, $mimetypes, $filenames, $templateCc, $templateBcc, 0, -1, $errorsTo, '', $trackId, '', 'standard', '');
 		if (!empty($mail->error) || !empty($mail->errors)) {
-			$mailError = !empty($mail->error) ? $mail->error : implode(', ', $mail->errors);
-			return $this->recordFailure($entity, $invoiceId, $langs->trans('LmdbAutoInvoiceSendMailError', $invoice->ref).': '.$mailError);
+			return $this->recordFailure($entity, $invoiceId, $langs->trans('LmdbAutoInvoiceSendMailError', $invoice->ref));
 		}
 
 		if (!$mail->sendfile()) {
-			$mailError = !empty($mail->error) ? $mail->error : implode(', ', $mail->errors);
-			return $this->recordFailure($entity, $invoiceId, $langs->trans('LmdbAutoInvoiceSendMailError', $invoice->ref).': '.$mailError);
+			return $this->recordFailure($entity, $invoiceId, $langs->trans('LmdbAutoInvoiceSendMailError', $invoice->ref));
 		}
 
 		$invoice->email_msgid = $mail->msgid;
+		$invoice->context['email_msgid'] = $mail->msgid;
 		if (self::markInvoiceSentFromTrigger($this->db, $invoice, $user, self::ORIGIN_AUTOMATIC) < 0) {
 			$this->errors[] = $langs->trans('LmdbAutoInvoiceSendLedgerError', $invoice->ref);
-			return -1;
 		}
 
-		$invoice->socid = (int) $invoice->thirdparty->id;
-		$invoice->sendtoid = array();
+		$invoice->socid = (int) $invoice->socid;
+		$invoice->sendtoid = $recipientData['contact_ids'];
 		$invoice->actiontypecode = 'AC_OTH_AUTO';
 		$invoice->actionmsg = $content;
-		$invoice->actionmsg2 = getDolGlobalString('MAIN_MAIL_REPLACE_EVENT_TITLE_BY_EMAIL_SUBJECT') ? $subject : $outputlangs->transnoentities('MailSentByTo', $from, $sendTo);
+		$invoice->actionmsg2 = getDolGlobalString('MAIN_MAIL_REPLACE_EVENT_TITLE_BY_EMAIL_SUBJECT')
+			? $subject
+			: $outputlangs->transnoentities('MailSentByTo', CMailFile::getValidAddress($from, 4, 0, 1), CMailFile::getValidAddress($sendTo, 4, 0, 1));
 		$invoice->trackid = $trackId;
 		$invoice->fk_element = $invoice->id;
 		$invoice->elementtype = $invoice->element;
@@ -470,7 +527,6 @@ class LmdbInvoiceAutoSend
 		$invoice->email_tocc = $templateCc;
 		$invoice->email_tobcc = $templateBcc;
 		$invoice->context['lmdb_auto_invoice_send'] = 1;
-		$invoice->context['email_msgid'] = $mail->msgid;
 		$invoice->context['email_from'] = $from;
 		$invoice->context['email_subject'] = $subject;
 		$invoice->context['email_to'] = $sendTo;
@@ -498,17 +554,21 @@ class LmdbInvoiceAutoSend
 	 * Return invoice recipient addresses.
 	 *
 	 * @param Facture $invoice Invoice object with third party loaded
-	 * @return array<int,string>
+	 * @return array{emails:array<int,string>,contact_ids:array<int,int>}
 	 */
 	private function getInvoiceRecipients($invoice)
 	{
 		$recipients = array();
+		$contactIds = array();
 		$contacts = $invoice->liste_contact(-1, 'external', 0, 'BILLING');
 		if (is_array($contacts)) {
 			foreach ($contacts as $contact) {
 				$email = isset($contact['email']) ? trim((string) $contact['email']) : '';
 				if ($email !== '' && isValidEmail($email)) {
 					$recipients[] = $email;
+					if (!empty($contact['id'])) {
+						$contactIds[] = (int) $contact['id'];
+					}
 				}
 			}
 		}
@@ -517,7 +577,10 @@ class LmdbInvoiceAutoSend
 			$recipients[] = trim((string) $invoice->thirdparty->email);
 		}
 
-		return array_values(array_unique($recipients));
+		return array(
+			'emails' => array_values(array_unique($recipients)),
+			'contact_ids' => array_values(array_unique($contactIds)),
+		);
 	}
 
 	/**
@@ -594,6 +657,28 @@ class LmdbInvoiceAutoSend
 	}
 
 	/**
+	 * Stop automatic retries when an invoice changed after it was claimed.
+	 *
+	 * @param int    $entity    Entity id
+	 * @param int    $invoiceId Invoice id
+	 * @param string $message   Review reason
+	 * @return int Always 0
+	 */
+	private function recordReview($entity, $invoiceId, $message)
+	{
+		$message = dol_trunc($message, 2000, 'right', 'UTF-8', 1);
+		$sql = "UPDATE ".MAIN_DB_PREFIX."lmdb_invoice_email SET status = ".self::STATUS_REVIEW;
+		$sql .= ", last_error = '".$this->db->escape($message)."'";
+		$sql .= " WHERE entity = ".((int) $entity)." AND fk_facture = ".((int) $invoiceId);
+		if (!$this->db->query($sql)) {
+			$this->errors[] = $this->db->lasterror();
+		}
+		dol_syslog(__METHOD__.': invoice id='.(int) $invoiceId.' requires review', LOG_WARNING);
+
+		return 0;
+	}
+
+	/**
 	 * Move interrupted processing rows to manual review instead of retrying them.
 	 *
 	 * @param int $entity Entity id
@@ -601,17 +686,39 @@ class LmdbInvoiceAutoSend
 	 */
 	private function markStaleProcessingForReview($entity)
 	{
+		global $langs;
+
+		$reviewMessage = $langs->trans('LmdbAutoInvoiceSendInterruptedReview');
 		$sql = "UPDATE ".MAIN_DB_PREFIX."lmdb_invoice_email SET status = ".self::STATUS_REVIEW;
-		$sql .= ", last_error = 'Interrupted send: manual review required before any new email'";
+		$sql .= ", last_error = '".$this->db->escape($reviewMessage)."'";
 		$sql .= " WHERE entity = ".((int) $entity);
 		$sql .= " AND status = ".self::STATUS_PROCESSING;
-		$sql .= " AND date_attempt < '".$this->db->idate(dol_now() - 86400)."'";
+		$sql .= " AND date_attempt < '".$this->db->idate(dol_now() - self::PROCESSING_STALE_DELAY)."'";
 		$resql = $this->db->query($sql);
 		if (!$resql) {
 			return -1;
 		}
 
 		return (int) $this->db->affected_rows($resql);
+	}
+
+	/**
+	 * Count ledger rows in one status for the current entity.
+	 *
+	 * @param int $entity Entity id
+	 * @param int $status Ledger status
+	 * @return int Number of rows, or -1
+	 */
+	private function countLedgerRows($entity, $status)
+	{
+		$sql = "SELECT COUNT(rowid) AS nb FROM ".MAIN_DB_PREFIX."lmdb_invoice_email";
+		$sql .= " WHERE entity = ".((int) $entity)." AND status = ".((int) $status);
+		$resql = $this->db->query($sql);
+		if (!$resql || !is_object($obj = $this->db->fetch_object($resql))) {
+			return -1;
+		}
+
+		return (int) $obj->nb;
 	}
 
 	/**
@@ -622,6 +729,8 @@ class LmdbInvoiceAutoSend
 	 */
 	private function initializeMinimumInvoiceId($entity)
 	{
+		require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+
 		$sql = "SELECT MAX(rowid) AS maxid FROM ".MAIN_DB_PREFIX."facture WHERE entity = ".((int) $entity);
 		$resql = $this->db->query($sql);
 		if (!$resql || !is_object($obj = $this->db->fetch_object($resql))) {

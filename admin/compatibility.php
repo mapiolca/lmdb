@@ -73,17 +73,20 @@ print '<table class="noborder centpercent">';
 print '<tr class="liste_titre">';
 print '<td>'.$langs->trans('Feature').'</td>';
 print '<td>'.$langs->trans('Description').'</td>';
-print '<td>'.$langs->trans('MinimumDolibarrVersion').'</td>';
+print '<td>'.$langs->trans('CoreAvailableFrom').'</td>';
+print '<td>'.$langs->trans('ModuleAvailableFrom').'</td>';
 print '<td>'.$langs->trans('MinimumPhpVersion').'</td>';
 print '<td>'.$langs->trans('Status').'</td>';
 print '<td>'.$langs->trans('Reason').'</td>';
+print '<td>'.$langs->trans('CompatibilityCheck').'</td>';
 print '</tr>';
 
 foreach (LmdbCompatibility::getFeatures() as $feature) {
 	print '<tr class="oddeven">';
 	print '<td>'.dol_escape_htmltag($langs->trans($feature['label'])).'</td>';
 	print '<td>'.dol_escape_htmltag($langs->trans($feature['description'])).'</td>';
-	print '<td>'.dol_escape_htmltag($feature['min_dolibarr']).'</td>';
+	print '<td>'.dol_escape_htmltag($feature['core_available_from']).'</td>';
+	print '<td>'.dol_escape_htmltag($feature['module_available_from']).'</td>';
 	print '<td>'.dol_escape_htmltag($feature['min_php']).'</td>';
 	print '<td>';
 	if (!empty($feature['available'])) {
@@ -103,6 +106,7 @@ foreach (LmdbCompatibility::getFeatures() as $feature) {
 		print dol_escape_htmltag(implode(', ', $translatedreasons));
 	}
 	print '</td>';
+	print '<td><code>'.dol_escape_htmltag($feature['compatibility_check']).'</code></td>';
 	print '</tr>';
 }
 

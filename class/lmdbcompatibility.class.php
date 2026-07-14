@@ -23,6 +23,19 @@
 
 /**
  * Centralized compatibility checks.
+ *
+ * @phpstan-type CompatibilityFeature array{
+ *     code:string,
+ *     label:string,
+ *     description:string,
+ *     min_dolibarr:string,
+ *     core_available_from:string,
+ *     module_available_from:string,
+ *     min_php:string,
+ *     compatibility_check:string,
+ *     available:bool,
+ *     reasons:array<int,string>
+ * }
  */
 class LmdbCompatibility
 {
@@ -64,7 +77,7 @@ class LmdbCompatibility
 	/**
 	 * Return unavailable features.
 	 *
-	 * @return array<string,array<string,mixed>>
+	 * @return array<string,CompatibilityFeature>
 	 */
 	public static function getUnavailableFeatures()
 	{
@@ -81,7 +94,7 @@ class LmdbCompatibility
 	/**
 	 * Return all declared features with compatibility status.
 	 *
-	 * @return array<string,array<string,mixed>>
+	 * @return array<string,CompatibilityFeature>
 	 */
 	public static function getFeatures()
 	{
@@ -94,7 +107,7 @@ class LmdbCompatibility
 		if (!self::isDolibarrVersionAtLeast('20.0.0')) {
 			$reasons[] = 'RequiresDolibarr20';
 		}
-		if (!self::isModuleEnabled('facture')) {
+		if (!isModEnabled('invoice')) {
 			$reasons[] = 'RequiresInvoiceModule';
 		}
 		if (!self::hasCoreSpongeModel()) {
@@ -106,29 +119,59 @@ class LmdbCompatibility
 			'label' => 'LmdbFeatureInvoicePdfModel',
 			'description' => 'LmdbFeatureInvoicePdfModelDescription',
 			'min_dolibarr' => '20.0.0',
+			'core_available_from' => '20.0.0',
+			'module_available_from' => '20.0.0',
 			'min_php' => '8.0.0',
+			'compatibility_check' => "DOL_VERSION >= 20.0.0; PHP_VERSION >= 8.0.0; isModEnabled('invoice'); pdf_sponge.modules.php present",
 			'available' => empty($reasons),
 			'reasons' => $reasons,
 		);
 
-		return $features;
-	}
-
-	/**
-	 * Check whether a Dolibarr module is enabled.
-	 *
-	 * @param string $module Module key
-	 * @return bool
-	 */
-	private static function isModuleEnabled($module)
-	{
-		global $conf;
-
-		if (function_exists('isModEnabled')) {
-			return isModEnabled($module);
+		$autoSendReasons = array();
+		if (!self::isPhpVersionAtLeast('8.0.0')) {
+			$autoSendReasons[] = 'RequiresPhp80';
+		}
+		if (!self::isDolibarrVersionAtLeast('20.0.0')) {
+			$autoSendReasons[] = 'RequiresDolibarr20';
+		}
+		if (!isModEnabled('invoice')) {
+			$autoSendReasons[] = 'RequiresInvoiceModule';
+		}
+		if (!isModEnabled('cron')) {
+			$autoSendReasons[] = 'RequiresCronModule';
 		}
 
-		return !empty($conf->{$module}->enabled);
+		$features['recurring_invoice_auto_send'] = array(
+			'code' => 'recurring_invoice_auto_send',
+			'label' => 'LmdbFeatureRecurringInvoiceAutoSend',
+			'description' => 'LmdbFeatureRecurringInvoiceAutoSendDescription',
+			'min_dolibarr' => '20.0.0',
+			'core_available_from' => '20.0.0',
+			'module_available_from' => '20.0.0',
+			'min_php' => '8.0.0',
+			'compatibility_check' => "DOL_VERSION >= 20.0.0; PHP_VERSION >= 8.0.0; isModEnabled('invoice'); isModEnabled('cron')",
+			'available' => empty($autoSendReasons),
+			'reasons' => $autoSendReasons,
+		);
+
+		$counterReasons = array();
+		if (!self::isDolibarrVersionAtLeast('23.0.0')) {
+			$counterReasons[] = 'RequiresDolibarr23InvoiceEmailCounter';
+		}
+		$features['invoice_email_sent_counter'] = array(
+			'code' => 'invoice_email_sent_counter',
+			'label' => 'LmdbFeatureInvoiceEmailCounter',
+			'description' => 'LmdbFeatureInvoiceEmailCounterDescription',
+			'min_dolibarr' => '23.0.0',
+			'core_available_from' => '23.0.0',
+			'module_available_from' => '23.0.0',
+			'min_php' => '8.0.0',
+			'compatibility_check' => 'DOL_VERSION >= 23.0.0',
+			'available' => empty($counterReasons),
+			'reasons' => $counterReasons,
+		);
+
+		return $features;
 	}
 
 	/**

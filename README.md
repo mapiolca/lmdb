@@ -26,6 +26,40 @@ img/object_lmdb.png
 
 ## Fonctionnalités
 
+### Envoi automatique des factures récurrentes
+
+LMDB peut envoyer automatiquement une facture client lorsqu'elle est générée depuis une facture récurrente configurée.
+
+La facture récurrente porte deux extrafields natifs :
+
+- **Envoi automatique de la facture** (`lmdb_envoi_auto`) ;
+- **Modèle d'email pour l'envoi automatique** (`lmdb_template`), limité aux modèles Dolibarr de type `facture_send` de l'entité.
+
+Ces codes sont volontairement identiques à ceux historiquement créés par le module Delegation. Lors de l'activation de LMDB, leurs définitions sont reprises sans supprimer les valeurs existantes. Dolibarr copie ensuite nativement ces valeurs vers la facture générée.
+
+La tâche native **Envoi automatique LMDB des factures récurrentes** :
+
+- s'exécute chaque jour avec la priorité `60`, après la génération native des factures récurrentes ;
+- traite uniquement les factures validées, non payées, issues d'une facture récurrente et appartenant à l'entité courante ;
+- reprend les erreurs explicites au passage suivant ;
+- utilise un registre transactionnel pour empêcher un double envoi ;
+- place un traitement interrompu dans un état à vérifier manuellement au lieu de risquer un second email ;
+- n'envoie aucune facture créée avant le marqueur établi lors de la première activation de la version `1.1.0`.
+
+Les destinataires sont les contacts de facturation, avec repli sur l'email du tiers. Les destinataires To, CC et BCC du modèle sont ajoutés après substitutions. L'expéditeur du modèle est prioritaire sur `MAIN_MAIL_EMAIL_FROM`.
+
+Lorsque le modèle d'email demande une pièce jointe, LMDB utilise le document principal de la facture ou le génère avec le modèle PDF configuré. Le chemin est contrôlé avec le répertoire documentaire de l'entité propriétaire de la facture. Lorsque le modèle ne demande pas de pièce jointe, l'email est envoyé sans PDF.
+
+Après un envoi réussi, LMDB appelle le trigger core `BILL_SENTBYMAIL`. L'événement Agenda et les traitements natifs restent donc la source de vérité ; LMDB ne crée pas d'`ActionComm` parallèle.
+
+L'envoi utilise directement les classes email Dolibarr parce qu'il s'agit d'un envoi documentaire individuel piloté par un modèle `facture_send`, et non d'un abonnement générique. LMDB ne crée donc pas de configuration parallèle dans le module Notifications.
+
+#### Migration depuis Delegation
+
+La tâche historique `sendEmailsNotificationOnInvoiceDate` du module Delegation doit être désactivée dans **Travaux planifiés**. Tant que Delegation et cette ancienne tâche sont actifs, LMDB bloque tous ses envois et affiche un avertissement dans sa page de configuration afin d'éviter les doublons.
+
+LMDB ne modifie ni le code ni les réglages du module Delegation.
+
 ### Modèle PDF de facture `lmdbsponge`
 
 Le module ajoute un modèle PDF de facture nommé `lmdbsponge`, basé sur le modèle natif `sponge`.
@@ -52,6 +86,12 @@ Depuis cette page, un administrateur peut :
 - vérifier l'enregistrement du modèle `lmdbsponge` ;
 - réenregistrer le modèle si nécessaire ;
 - définir explicitement `lmdbsponge` comme modèle PDF de facture par défaut.
+- vérifier l'enregistrement et l'activation de la tâche d'envoi ;
+- détecter un conflit avec l'ancienne tâche Delegation ;
+- consulter le nombre d'envois en erreur ou à vérifier ;
+- choisir la limite de traitement par passage (`25`, `50`, `100` ou `250`).
+
+Les travaux planifiés, constantes, extrafields, modèles documentaires et données du registre sont conservés lors d'une désactivation/réactivation. Une désactivation arrête l'exécution sans réinitialiser la configuration.
 
 Les onglets internes disponibles sont :
 

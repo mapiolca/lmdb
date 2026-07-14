@@ -81,13 +81,8 @@ function lmdbRegisterInvoiceDocumentModel($db, $entity)
 	$model = LMDB_INVOICE_PDF_MODEL;
 	$entity = (int) $entity;
 
-	$sql = "DELETE FROM ".MAIN_DB_PREFIX."document_model";
-	$sql .= " WHERE nom = '".$db->escape($model)."'";
-	$sql .= " AND type = 'invoice'";
-	$sql .= " AND entity = ".$entity;
-
-	if (!$db->query($sql)) {
-		return -1;
+	if (lmdbIsInvoiceDocumentModelRegistered($db, $entity)) {
+		return 1;
 	}
 
 	$sql = "INSERT INTO ".MAIN_DB_PREFIX."document_model (nom, type, libelle, entity)";
@@ -98,26 +93,6 @@ function lmdbRegisterInvoiceDocumentModel($db, $entity)
 	}
 
 	return 1;
-}
-
-/**
- * Unregister the LMDB invoice PDF model for one entity.
- *
- * @param DoliDB $db     Database handler
- * @param int    $entity Entity id
- * @return int 1 if OK, <0 if KO
- */
-function lmdbUnregisterInvoiceDocumentModel($db, $entity)
-{
-	$model = LMDB_INVOICE_PDF_MODEL;
-	$entity = (int) $entity;
-
-	$sql = "DELETE FROM ".MAIN_DB_PREFIX."document_model";
-	$sql .= " WHERE nom = '".$db->escape($model)."'";
-	$sql .= " AND type = 'invoice'";
-	$sql .= " AND entity = ".$entity;
-
-	return $db->query($sql) ? 1 : -1;
 }
 
 /**

@@ -44,7 +44,7 @@ class InterfaceLmdbTriggers extends DolibarrTriggers
 	 * @param User         $user   User responsible for the event
 	 * @param Translate    $langs  Translation handler
 	 * @param Conf         $conf   Dolibarr configuration
-	 * @return int <0 on error, 0 when not handled, >0 when handled
+	 * @return int <0 on error, 0 on success
 	 */
 	public function runTrigger($action, $object, User $user, Translate $langs, Conf $conf)
 	{
@@ -61,6 +61,6 @@ class InterfaceLmdbTriggers extends DolibarrTriggers
 			return -1;
 		}
 
-		return $result;
+		return 0;
 	}
 }
