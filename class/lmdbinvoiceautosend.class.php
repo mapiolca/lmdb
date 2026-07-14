@@ -187,7 +187,8 @@ class LmdbInvoiceAutoSend
 			$reviewCount = 0;
 		}
 
-		$this->output = $langs->trans('LmdbAutoInvoiceSendCronResult', $analysed, $sent, $skipped, $failed, $reviewCount);
+		$this->output = $langs->trans('LmdbAutoInvoiceSendCronResult', $analysed, $sent, $skipped, $failed);
+		$this->output .= ' '.$langs->trans('LmdbAutoInvoiceSendCronReviewResult', $reviewCount);
 		if (!empty($this->errors)) {
 			$this->error = implode(' | ', $this->errors);
 		}
