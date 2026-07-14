@@ -8,6 +8,7 @@
 - Résolution des substitutions Dolibarr natives et des neuf variables de mois et d'année depuis la date réelle de la facture générée.
 - Déclaration des variables de période via les substitutions natives afin de les rendre disponibles dans les contenus PDF, avec chargement explicite des domaines de traduction LMDB et Factures avant rendu.
 - Affichage de la liste complète des variables LMDB dans le tooltip Ajax de l'extrafield de référence client.
+- Alignement contextuel de `__INVOICE_YEAR__` avec le mois suivant en décembre et le mois précédent en janvier.
 - Ajout d'un interrupteur natif par entité, initialisé depuis `CAPINVOICEREFFROMREC_ACTIVE` lorsqu'un ancien réglage existe.
 - Suspension automatique de la fonction LMDB tant que l'ancien module `capinvoicereffromrec` est actif afin d'éviter un double traitement.
 - Ajout de la fonction dans les réglages, l'onglet Compatibilité, l'onglet À propos et la documentation française et anglaise.

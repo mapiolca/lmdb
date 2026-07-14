@@ -131,8 +131,51 @@ class LmdbInvoiceCustomerRef
 		}
 
 		complete_substitutions_array($substitutions, $langs, $invoice);
+		self::alignInvoiceYearWithRelativeMonth($template, $substitutions);
 
 		return make_substitutions($template, $substitutions, $langs);
+	}
+
+	/**
+	 * Align the generic invoice year when it is combined with a relative month.
+	 *
+	 * The adjustment is deliberately contextual: __INVOICE_YEAR__ keeps the
+	 * generated invoice year when used alone or with the current month. When a
+	 * template uses the previous or next month, the year follows that month only
+	 * at the January/December boundary. Explicit PREVIOUS_YEAR and NEXT_YEAR
+	 * substitutions remain unchanged.
+	 *
+	 * @param string              $template      Reference template
+	 * @param array<string,mixed> $substitutions Substitution values
+	 * @return void
+	 */
+	private static function alignInvoiceYearWithRelativeMonth($template, &$substitutions)
+	{
+		if (strpos($template, '__INVOICE_YEAR__') === false) {
+			return;
+		}
+
+		$usesPreviousMonth = strpos($template, '__INVOICE_PREVIOUS_MONTH__') !== false
+			|| strpos($template, '__INVOICE_PREVIOUS_MONTH_TEXT__') !== false;
+		$usesNextMonth = strpos($template, '__INVOICE_NEXT_MONTH__') !== false
+			|| strpos($template, '__INVOICE_NEXT_MONTH_TEXT__') !== false;
+
+		// A single generic year cannot describe both relative directions safely.
+		if ($usesPreviousMonth === $usesNextMonth) {
+			return;
+		}
+
+		if ($usesNextMonth
+			&& isset($substitutions['__INVOICE_NEXT_MONTH__'], $substitutions['__INVOICE_NEXT_YEAR__'])
+			&& (string) $substitutions['__INVOICE_NEXT_MONTH__'] === '01') {
+			$substitutions['__INVOICE_YEAR__'] = (string) $substitutions['__INVOICE_NEXT_YEAR__'];
+		}
+
+		if ($usesPreviousMonth
+			&& isset($substitutions['__INVOICE_PREVIOUS_MONTH__'], $substitutions['__INVOICE_PREVIOUS_YEAR__'])
+			&& (string) $substitutions['__INVOICE_PREVIOUS_MONTH__'] === '12') {
+			$substitutions['__INVOICE_YEAR__'] = (string) $substitutions['__INVOICE_PREVIOUS_YEAR__'];
+		}
 	}
 
 	/**
