@@ -3,14 +3,14 @@
 
 LmdbModuleName=Les Métiers du Bâtiment
 LmdbModuleDescription=Automatisations et modèles documentaires LMDB
-LmdbModuleDescriptionLong=Module interne Les Métiers du Bâtiment regroupant l'envoi automatique des factures récurrentes et des modèles de documents adaptés aux besoins de la société.
+LmdbModuleDescriptionLong=Module interne Les Métiers du Bâtiment regroupant l'envoi automatique des factures récurrentes, la propagation de leur référence client et des modèles de documents adaptés aux besoins de la société.
 Module450050Name=LMDB
 Module450050Desc=Automatisations et modèles documentaires LMDB
 ModuleLmdbName=LMDB
 ModuleLmdbDesc=Automatisations et modèles documentaires LMDB
 LmdbPermissionConfigure=Configurer le module LMDB
 LmdbSetup=Configuration LMDB
-LmdbSetupIntro=Le module ajoute l'envoi automatique des factures récurrentes et des modèles documentaires propres à Les Métiers du Bâtiment. Le modèle PDF LMDB Sponge reste disponible sans être imposé automatiquement.
+LmdbSetupIntro=Le module ajoute l'envoi automatique des factures récurrentes, la propagation de leur référence client et des modèles documentaires propres à Les Métiers du Bâtiment. Le modèle PDF LMDB Sponge reste disponible sans être imposé automatiquement.
 LmdbCompatibility=Compatibilité LMDB
 LmdbAbout=À propos de LMDB
 BackToModuleList=Retour vers la liste des modules
@@ -50,10 +50,29 @@ LmdbFeatureInvoicePdfModel=Modèle PDF de facture LMDB Sponge
 LmdbFeatureInvoicePdfModelDescription=Ajoute un modèle PDF de facture basé sur Sponge avec traductions et périodes de service corrigées.
 RequiresCronModule=Le module Travaux planifiés doit être actif
 RequiresDolibarr23InvoiceEmailCounter=Le compteur natif des emails de facture est disponible à partir de Dolibarr 23 ; l'envoi automatique reste disponible sur les versions antérieures.
+RequiresCapInvoiceRefFromRecDisabled=L'ancien module CapInvoiceRefFromRec doit être désactivé pour éviter un double traitement.
 LmdbFeatureRecurringInvoiceAutoSend=Envoi automatique des factures récurrentes
 LmdbFeatureRecurringInvoiceAutoSendDescription=Envoie par tâche planifiée les factures validées générées depuis un modèle récurrent configuré.
 LmdbFeatureInvoiceEmailCounter=Compteur natif des emails de facture
 LmdbFeatureInvoiceEmailCounterDescription=Incrémente le compteur natif des emails envoyés lorsque la version Dolibarr le fournit.
+LmdbFeatureRecurringInvoiceCustomerRef=Référence client des factures récurrentes
+LmdbFeatureRecurringInvoiceCustomerRefDescription=Propage vers la facture générée une référence client définie sur la facture récurrente, après résolution des variables de période.
+
+LmdbRecurringInvoiceCustomerRefTitle=Référence client des factures récurrentes
+LmdbRecurringInvoiceCustomerRefEnabled=Propager automatiquement la référence client
+LmdbRecurringInvoiceCustomerRefEnabledHelp=Applique à chaque facture générée la référence client configurée sur sa facture récurrente.
+LmdbRecurringInvoiceCustomerRefField=Code de l'extrafield historique repris
+LmdbRecurringInvoiceCustomerRef=Référence client de la facture générée
+LmdbRecurringInvoiceCustomerRefHelp=Référence client à appliquer aux factures générées. Les variables de substitution LMDB et les substitutions natives Dolibarr sont acceptées.
+LmdbRecurringInvoiceCustomerRefSubstitutions=Variables de période disponibles
+LmdbRecurringInvoiceCustomerRefSubstitutionsHelp=Ces variables sont calculées à partir de la date réelle de la facture générée. Les substitutions natives Dolibarr restent également disponibles.
+LmdbLegacyCustomerRefModuleStatus=Ancien module CapInvoiceRefFromRec
+LmdbLegacyCustomerRefModuleConflict=L'ancien module est actif. LMDB suspend cette fonction pour éviter un double traitement ; désactivez CapInvoiceRefFromRec après la migration.
+LmdbLegacyCustomerRefModuleNotActive=L'ancien module n'est pas actif ; LMDB assure la propagation.
+LmdbRecurringInvoiceCustomerRefSourceError=Impossible de charger la facture récurrente d'identifiant %s pour propager la référence client.
+LmdbRecurringInvoiceCustomerRefEntityError=La facture %s et sa facture récurrente n'appartiennent pas au même environnement.
+LmdbRecurringInvoiceCustomerRefTooLong=La référence client calculée pour la facture %s dépasse 255 caractères.
+LmdbRecurringInvoiceCustomerRefUpdateError=Impossible d'enregistrer la référence client de la facture %s.
 
 LmdbAutoInvoiceSend=Envoi automatique de la facture
 LmdbAutoInvoiceSendHelp=Envoie automatiquement la facture validée générée depuis ce modèle récurrent.
@@ -105,7 +124,7 @@ MainFeatures=Fonctionnalités principales
 UsefulLinks=Liens utiles
 LmdbCompatibilitySummary=Dolibarr 20.0+ et PHP 8.0+
 LmdbDependenciesSummary=Le module Factures est requis. Les Travaux planifiés sont nécessaires pour l'envoi automatique et le modèle natif Sponge pour le modèle PDF LMDB.
-LmdbMainFeaturesSummary=Envoi automatique et idempotent des factures récurrentes, avec modèle d'email par facture récurrente, et modèle PDF LMDB Sponge.
+LmdbMainFeaturesSummary=Envoi automatique et idempotent des factures récurrentes, référence client dynamique issue du modèle récurrent, modèle d'email par facture récurrente et modèle PDF LMDB Sponge.
 
 DateFromTo=Du %s au %s
 DateFrom=À partir du %s

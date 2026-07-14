@@ -3,14 +3,14 @@
 
 LmdbModuleName=Les Métiers du Bâtiment
 LmdbModuleDescription=LMDB automations and document models
-LmdbModuleDescriptionLong=Internal Les Métiers du Bâtiment module grouping automatic recurring invoice delivery and company-specific document models.
+LmdbModuleDescriptionLong=Internal Les Métiers du Bâtiment module grouping automatic recurring invoice delivery, customer-reference propagation, and company-specific document models.
 Module450050Name=LMDB
 Module450050Desc=LMDB automations and document models
 ModuleLmdbName=LMDB
 ModuleLmdbDesc=LMDB automations and document models
 LmdbPermissionConfigure=Configure the LMDB module
 LmdbSetup=LMDB setup
-LmdbSetupIntro=The module adds automatic recurring invoice delivery and Les Métiers du Bâtiment document models. The LMDB Sponge invoice PDF model remains available without being forced automatically.
+LmdbSetupIntro=The module adds automatic recurring invoice delivery, customer-reference propagation, and Les Métiers du Bâtiment document models. The LMDB Sponge invoice PDF model remains available without being forced automatically.
 LmdbCompatibility=LMDB compatibility
 LmdbAbout=About LMDB
 BackToModuleList=Back to module list
@@ -50,10 +50,29 @@ LmdbFeatureInvoicePdfModel=LMDB Sponge invoice PDF model
 LmdbFeatureInvoicePdfModelDescription=Adds an invoice PDF model based on Sponge with corrected translations and service periods.
 RequiresCronModule=The Scheduled Jobs module must be enabled
 RequiresDolibarr23InvoiceEmailCounter=The native invoice email counter is available from Dolibarr 23; automatic delivery remains available on earlier versions.
+RequiresCapInvoiceRefFromRecDisabled=The legacy CapInvoiceRefFromRec module must be disabled to prevent duplicate processing.
 LmdbFeatureRecurringInvoiceAutoSend=Automatic recurring invoice delivery
 LmdbFeatureRecurringInvoiceAutoSendDescription=Sends validated invoices generated from a configured recurring template through a scheduled job.
 LmdbFeatureInvoiceEmailCounter=Native invoice email counter
 LmdbFeatureInvoiceEmailCounterDescription=Increments the native sent-email counter when the Dolibarr version provides it.
+LmdbFeatureRecurringInvoiceCustomerRef=Recurring invoice customer reference
+LmdbFeatureRecurringInvoiceCustomerRefDescription=Propagates a customer reference defined on the recurring invoice to each generated invoice after resolving period variables.
+
+LmdbRecurringInvoiceCustomerRefTitle=Recurring invoice customer reference
+LmdbRecurringInvoiceCustomerRefEnabled=Automatically propagate the customer reference
+LmdbRecurringInvoiceCustomerRefEnabledHelp=Applies the customer reference configured on the recurring invoice to every generated invoice.
+LmdbRecurringInvoiceCustomerRefField=Reused historical extrafield code
+LmdbRecurringInvoiceCustomerRef=Generated invoice customer reference
+LmdbRecurringInvoiceCustomerRefHelp=Customer reference applied to generated invoices. LMDB period variables and native Dolibarr substitutions are supported.
+LmdbRecurringInvoiceCustomerRefSubstitutions=Available period variables
+LmdbRecurringInvoiceCustomerRefSubstitutionsHelp=These variables use the actual date of the generated invoice. Native Dolibarr substitutions remain available as well.
+LmdbLegacyCustomerRefModuleStatus=Legacy CapInvoiceRefFromRec module
+LmdbLegacyCustomerRefModuleConflict=The legacy module is enabled. LMDB suspends this feature to prevent duplicate processing; disable CapInvoiceRefFromRec after migration.
+LmdbLegacyCustomerRefModuleNotActive=The legacy module is not enabled; LMDB handles propagation.
+LmdbRecurringInvoiceCustomerRefSourceError=Failed to load recurring invoice id %s to propagate the customer reference.
+LmdbRecurringInvoiceCustomerRefEntityError=Invoice %s and its recurring invoice do not belong to the same environment.
+LmdbRecurringInvoiceCustomerRefTooLong=The resolved customer reference for invoice %s exceeds 255 characters.
+LmdbRecurringInvoiceCustomerRefUpdateError=Failed to save the customer reference of invoice %s.
 
 LmdbAutoInvoiceSend=Automatically send the invoice
 LmdbAutoInvoiceSendHelp=Automatically sends the validated invoice generated from this recurring template.
@@ -105,7 +124,7 @@ MainFeatures=Main features
 UsefulLinks=Useful links
 LmdbCompatibilitySummary=Dolibarr 20.0+ and PHP 8.0+
 LmdbDependenciesSummary=The Invoices module is required. Scheduled Jobs is needed for automatic delivery and the native Sponge model for the LMDB PDF model.
-LmdbMainFeaturesSummary=Idempotent automatic recurring invoice delivery with a per-template email model, and the LMDB Sponge invoice PDF model.
+LmdbMainFeaturesSummary=Idempotent automatic recurring invoice delivery, dynamic customer references from recurring templates, per-template email models, and the LMDB Sponge invoice PDF model.
 
 DateFromTo=From %s to %s
 DateFrom=From %s

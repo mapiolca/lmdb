@@ -2,6 +2,8 @@
 
 Module externe Dolibarr pour Les Métiers du Bâtiment.
 
+Version courante : **1.2.0**.
+
 ## Compatibilité
 
 - Dolibarr 20.0 ou supérieur
@@ -25,6 +27,29 @@ img/object_lmdb.png
 ```
 
 ## Fonctionnalités
+
+### Référence client issue de la facture récurrente
+
+LMDB reprend la fonction du module `capinvoicereffromrec` : un extrafield **Référence client de la facture générée** est disponible sur les factures récurrentes et sa valeur est appliquée à chaque facture client générée.
+
+Le code historique `capinvoicereffromrec_ref` est volontairement conservé. Les définitions et valeurs existantes sont donc reprises sans duplication ni migration destructive. Lors de la première activation de LMDB 1.2.0, l'ancien réglage `CAPINVOICEREFFROMREC_ACTIVE` est également repris si le nouveau réglage LMDB n'existe pas encore.
+
+La référence accepte les substitutions Dolibarr natives et les variables de période suivantes, calculées depuis la date réelle de la facture générée :
+
+- `__INVOICE_PREVIOUS_MONTH__`, `__INVOICE_MONTH__`, `__INVOICE_NEXT_MONTH__` ;
+- `__INVOICE_PREVIOUS_MONTH_TEXT__`, `__INVOICE_MONTH_TEXT__`, `__INVOICE_NEXT_MONTH_TEXT__` ;
+- `__INVOICE_PREVIOUS_YEAR__`, `__INVOICE_YEAR__`, `__INVOICE_NEXT_YEAR__`.
+
+LMDB déclare également ces variables dans le mécanisme natif `complete_substitutions_array()`. Elles sont ainsi disponibles dans les contenus de documents et notes PDF qui passent par les substitutions Dolibarr. Le modèle `lmdbsponge` charge explicitement les domaines `main`, `bills`, `products`, `dict`, `companies`, `compta`, `projects`, `other` et `lmdb@lmdb` avant le rendu ; la référence client déjà résolue et enregistrée lors de `BILL_CREATE` est donc présente lorsque Dolibarr recharge la facture pour générer le PDF.
+
+La fonction peut être activée ou désactivée par entité depuis `admin/setup.php`. Tant que l'ancien module `capinvoicereffromrec` est actif, LMDB suspend sa propre propagation afin d'éviter un double traitement.
+
+#### Migration depuis CapInvoiceRefFromRec
+
+1. Mettre à jour et réactiver LMDB afin qu'il reprenne la définition de l'extrafield et l'ancien réglage.
+2. Vérifier les valeurs existantes sur les factures récurrentes.
+3. Désactiver le module `capinvoicereffromrec`.
+4. Générer une facture de test et vérifier sa référence client.
 
 ### Envoi automatique des factures récurrentes
 
@@ -85,7 +110,9 @@ Depuis cette page, un administrateur peut :
 
 - vérifier l'enregistrement du modèle `lmdbsponge` ;
 - réenregistrer le modèle si nécessaire ;
-- définir explicitement `lmdbsponge` comme modèle PDF de facture par défaut.
+- définir explicitement `lmdbsponge` comme modèle PDF de facture par défaut ;
+- activer ou désactiver la propagation de la référence client des factures récurrentes ;
+- consulter les variables de période disponibles et détecter l'ancien module concurrent ;
 - vérifier l'enregistrement et l'activation de la tâche d'envoi ;
 - détecter un conflit avec l'ancienne tâche Delegation ;
 - consulter le nombre d'envois en erreur ou à vérifier ;

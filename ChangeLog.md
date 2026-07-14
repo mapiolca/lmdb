@@ -1,5 +1,17 @@
 # ChangeLog
 
+## 1.2.0 - 2026-07-14
+
+- Intégration dans LMDB des fonctions du module `capinvoicereffromrec` avec attribution à Eric Seigne / CAP-REL.
+- Reprise conservatrice de l'extrafield historique `capinvoicereffromrec_ref` et de toutes ses valeurs par entité.
+- Propagation transactionnelle de la référence client lors du trigger core `BILL_CREATE`, sans second trigger métier ni événement Agenda parallèle.
+- Résolution des substitutions Dolibarr natives et des neuf variables de mois et d'année depuis la date réelle de la facture générée.
+- Déclaration des variables de période via les substitutions natives afin de les rendre disponibles dans les contenus PDF, avec chargement explicite des domaines de traduction LMDB et Factures avant rendu.
+- Ajout d'un interrupteur natif par entité, initialisé depuis `CAPINVOICEREFFROMREC_ACTIVE` lorsqu'un ancien réglage existe.
+- Suspension automatique de la fonction LMDB tant que l'ancien module `capinvoicereffromrec` est actif afin d'éviter un double traitement.
+- Ajout de la fonction dans les réglages, l'onglet Compatibilité, l'onglet À propos et la documentation française et anglaise.
+- Passage de la version du module à `1.2.0`.
+
 ## 1.1.0 - 2026-07-14
 
 - Transfert de l'envoi automatique des factures récurrentes depuis le module Delegation vers LMDB.
