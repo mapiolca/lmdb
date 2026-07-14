@@ -4,6 +4,11 @@
 LmdbModuleName=Les Métiers du Bâtiment
 LmdbModuleDescription=Automatisations et modèles documentaires LMDB
 LmdbModuleDescriptionLong=Module interne Les Métiers du Bâtiment regroupant l'envoi automatique des factures récurrentes et des modèles de documents adaptés aux besoins de la société.
+Module450050Name=LMDB
+Module450050Desc=Automatisations et modèles documentaires LMDB
+ModuleLmdbName=LMDB
+ModuleLmdbDesc=Automatisations et modèles documentaires LMDB
+LmdbPermissionConfigure=Configurer le module LMDB
 LmdbSetup=Configuration LMDB
 LmdbSetupIntro=Le module ajoute l'envoi automatique des factures récurrentes et des modèles documentaires propres à Les Métiers du Bâtiment. Le modèle PDF LMDB Sponge reste disponible sans être imposé automatiquement.
 LmdbCompatibility=Compatibilité LMDB

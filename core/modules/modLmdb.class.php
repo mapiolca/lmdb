@@ -88,7 +88,7 @@ class modLmdb extends DolibarrModules
 		$this->boxes = array();
 		$this->cronjobs = array(
 			0 => array(
-				'label' => 'LmdbAutoInvoiceSendCronLabel',
+				'label' => 'LmdbAutoInvoiceSendCronLabel:lmdb@lmdb',
 				'jobtype' => 'method',
 				'class' => '/lmdb/class/lmdbinvoiceautosend.class.php',
 				'objectname' => 'LmdbInvoiceAutoSend',
@@ -108,7 +108,7 @@ class modLmdb extends DolibarrModules
 		$r = 0;
 		$r++;
 		$this->rights[$r][0] = $this->numero * 100 + $r;
-		$this->rights[$r][1] = 'Configure LMDB module';
+		$this->rights[$r][1] = 'LmdbPermissionConfigure';
 		$this->rights[$r][4] = 'setup';
 		$this->rights[$r][5] = 'configure';
 
@@ -139,6 +139,10 @@ class modLmdb extends DolibarrModules
 		}
 
 		if ($this->initializeInvoiceAutoSendConstants((int) $conf->entity) <= 0) {
+			return 0;
+		}
+
+		if ($this->normalizeInvoiceAutoSendCronTranslationKeys((int) $conf->entity) <= 0) {
 			return 0;
 		}
 
@@ -290,6 +294,35 @@ class modLmdb extends DolibarrModules
 				$this->error = $this->db->lasterror();
 				return 0;
 			}
+		}
+
+		return 1;
+	}
+
+	/**
+	 * Add the module language suffix to an existing cron row.
+	 *
+	 * Dolibarr loads the language file declared after the label separator when
+	 * rendering Scheduled Jobs. Only label and note are updated so the existing
+	 * schedule, status and execution history remain untouched.
+	 *
+	 * @param int $entity Entity id
+	 * @return int 1 if OK, 0 if KO
+	 */
+	private function normalizeInvoiceAutoSendCronTranslationKeys($entity)
+	{
+		$sql = "UPDATE ".MAIN_DB_PREFIX."cronjob";
+		$sql .= " SET label = 'LmdbAutoInvoiceSendCronLabel:lmdb@lmdb'";
+		$sql .= ", note = 'LmdbAutoInvoiceSendCronComment'";
+		$sql .= " WHERE entity = ".((int) $entity);
+		$sql .= " AND module_name = 'lmdb'";
+		$sql .= " AND classesname = '/lmdb/class/lmdbinvoiceautosend.class.php'";
+		$sql .= " AND objectname = 'LmdbInvoiceAutoSend'";
+		$sql .= " AND methodename = 'run'";
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return 0;
 		}
 
 		return 1;

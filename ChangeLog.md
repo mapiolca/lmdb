@@ -12,6 +12,7 @@
 - Appel du trigger core `BILL_SENTBYMAIL` après succès, sans création manuelle d'événement Agenda.
 - Intégration conditionnelle du compteur natif d'emails de facture à partir de Dolibarr 23.
 - Ajout des diagnostics et de la limite par passage dans la configuration LMDB.
+- Chargement explicite des traductions LMDB dans les Travaux planifiés et ajout des clés conventionnelles du module et de la permission.
 - Passage de la famille du module à `Les Métiers du Bâtiment` et ajout de la dépendance au module Factures.
 - Mise en conformité de la permission de configuration avec l'identifiant `45005001`, avec migration des affectations depuis `450051`.
 - Conservation des constantes, extrafields, modèles, travaux planifiés et données lors des désactivations/réactivations.

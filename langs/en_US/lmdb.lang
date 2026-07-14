@@ -4,6 +4,11 @@
 LmdbModuleName=Les Métiers du Bâtiment
 LmdbModuleDescription=LMDB automations and document models
 LmdbModuleDescriptionLong=Internal Les Métiers du Bâtiment module grouping automatic recurring invoice delivery and company-specific document models.
+Module450050Name=LMDB
+Module450050Desc=LMDB automations and document models
+ModuleLmdbName=LMDB
+ModuleLmdbDesc=LMDB automations and document models
+LmdbPermissionConfigure=Configure the LMDB module
 LmdbSetup=LMDB setup
 LmdbSetupIntro=The module adds automatic recurring invoice delivery and Les Métiers du Bâtiment document models. The LMDB Sponge invoice PDF model remains available without being forced automatically.
 LmdbCompatibility=LMDB compatibility
