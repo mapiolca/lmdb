@@ -67,6 +67,7 @@ LmdbAutoInvoiceSendCronStatus=LMDB scheduled job
 LmdbAutoInvoiceSendCronActive=The job is active.
 LmdbAutoInvoiceSendCronInactive=The job is registered but inactive.
 LmdbAutoInvoiceSendCronMissing=The job is not registered.
+LmdbAutoInvoiceSendCronTranslationUpdateError=Failed to update the LMDB scheduled job translation keys.
 LmdbOpenScheduledJobs=Open scheduled jobs
 LmdbDelegationCronStatus=Legacy Delegation job
 LmdbDelegationCronConflict=The legacy Delegation delivery job is active. LMDB blocks all delivery to prevent duplicates. Disable that job in Scheduled Jobs.

@@ -142,7 +142,9 @@ class modLmdb extends DolibarrModules
 			return 0;
 		}
 
-		if ($this->normalizeInvoiceAutoSendCronTranslationKeys((int) $conf->entity) <= 0) {
+		require_once dol_buildpath('/lmdb/class/lmdbinvoiceautosend.class.php', 0);
+		if (LmdbInvoiceAutoSend::normalizeCronTranslationKeys($this->db, (int) $conf->entity) <= 0) {
+			$this->error = $this->db->lasterror();
 			return 0;
 		}
 
@@ -294,35 +296,6 @@ class modLmdb extends DolibarrModules
 				$this->error = $this->db->lasterror();
 				return 0;
 			}
-		}
-
-		return 1;
-	}
-
-	/**
-	 * Add the module language suffix to an existing cron row.
-	 *
-	 * Dolibarr loads the language file declared after the label separator when
-	 * rendering Scheduled Jobs. Only label and note are updated so the existing
-	 * schedule, status and execution history remain untouched.
-	 *
-	 * @param int $entity Entity id
-	 * @return int 1 if OK, 0 if KO
-	 */
-	private function normalizeInvoiceAutoSendCronTranslationKeys($entity)
-	{
-		$sql = "UPDATE ".MAIN_DB_PREFIX."cronjob";
-		$sql .= " SET label = 'LmdbAutoInvoiceSendCronLabel:lmdb@lmdb'";
-		$sql .= ", note = 'LmdbAutoInvoiceSendCronComment'";
-		$sql .= " WHERE entity = ".((int) $entity);
-		$sql .= " AND module_name = 'lmdb'";
-		$sql .= " AND classesname = '/lmdb/class/lmdbinvoiceautosend.class.php'";
-		$sql .= " AND objectname = 'LmdbInvoiceAutoSend'";
-		$sql .= " AND methodename = 'run'";
-		$resql = $this->db->query($sql);
-		if (!$resql) {
-			$this->error = $this->db->lasterror();
-			return 0;
 		}
 
 		return 1;

@@ -14,6 +14,7 @@
 - Ajout des diagnostics et de la limite par passage dans la configuration LMDB.
 - Chargement explicite des traductions LMDB dans les Travaux planifiés et ajout des clés conventionnelles du module et de la permission.
 - Correction du résumé du cron pour respecter la limite de quatre substitutions de `Translate::trans()` sur Dolibarr v20.
+- Auto-réparation des clés de traduction de la tâche existante lors de son prochain lancement.
 - Passage de la famille du module à `Les Métiers du Bâtiment` et ajout de la dépendance au module Factures.
 - Mise en conformité de la permission de configuration avec l'identifiant `45005001`, avec migration des affectations depuis `450051`.
 - Conservation des constantes, extrafields, modèles, travaux planifiés et données lors des désactivations/réactivations.

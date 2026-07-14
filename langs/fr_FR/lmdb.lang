@@ -67,6 +67,7 @@ LmdbAutoInvoiceSendCronStatus=Travail planifié LMDB
 LmdbAutoInvoiceSendCronActive=La tâche est active.
 LmdbAutoInvoiceSendCronInactive=La tâche est enregistrée mais inactive.
 LmdbAutoInvoiceSendCronMissing=La tâche n'est pas enregistrée.
+LmdbAutoInvoiceSendCronTranslationUpdateError=Impossible de mettre à jour les clés de traduction du travail planifié LMDB.
 LmdbOpenScheduledJobs=Ouvrir les travaux planifiés
 LmdbDelegationCronStatus=Ancienne tâche Delegation
 LmdbDelegationCronConflict=L'ancienne tâche d'envoi du module Delegation est active. LMDB bloque tout envoi pour éviter les doublons. Désactivez cette tâche dans les Travaux planifiés.
