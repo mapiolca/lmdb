@@ -26,6 +26,23 @@ img/object_lmdb.png
 
 ## Fonctionnalités
 
+### Programmation des emailings natifs
+
+LMDB ajoute l'extrafield natif **Date et heure d'envoi programmées** (`lmdb_scheduled_send_at`) sur la fiche des emailings Dolibarr. Le champ utilise le sélecteur date/heure du core et peut être renseigné ou effacé tant que la campagne est au brouillon ou validée. Une valeur vide désactive la programmation.
+
+La tâche native **Envoi programmé LMDB des emailings natifs** s'exécute toutes les cinq minutes. Elle :
+
+- sélectionne uniquement les campagnes email de l'entité courante ayant une date programmée atteinte ;
+- fait entrer dans le traitement automatique uniquement les campagnes à l'état **Validé** ;
+- reprend les campagnes passées à l'état partiel par ce traitement lorsque des destinataires en erreur doivent être réessayés ;
+- délègue l'envoi au script officiel `scripts/emailings/mailing-send.php`, afin de conserver les destinataires, substitutions, désabonnements, pièces jointes, réglages SMTP et limites natifs ;
+- transmet l'entité courante au processus CLI et utilise la signature de l'utilisateur ayant validé la campagne ;
+- pose un verrou MySQL/MariaDB par campagne pour éviter deux exécutions LMDB concurrentes ;
+- passe l'emailing à l'état **Envoyé complètement** dès qu'aucun destinataire non envoyé ou en erreur ne subsiste ;
+- ignore ensuite définitivement les campagnes à l'état **Envoyé complètement**.
+
+Les campagnes sans date programmée, au brouillon, déjà envoyées complètement ou d'une autre entité sont ignorées. Le module Emailing, les Travaux planifiés, le script CLI natif de Dolibarr et un exécutable PHP CLI sont requis. La constante core `MAILING_LIMIT_SENDBYCLI=-1` désactive également cette fonctionnalité.
+
 ### Envoi automatique des factures récurrentes
 
 LMDB peut envoyer automatiquement une facture client lorsqu'elle est générée depuis une facture récurrente configurée.
@@ -90,8 +107,12 @@ Depuis cette page, un administrateur peut :
 - détecter un conflit avec l'ancienne tâche Delegation ;
 - consulter le nombre d'envois en erreur ou à vérifier ;
 - choisir la limite de traitement par passage (`25`, `50`, `100` ou `250`).
+- vérifier la disponibilité du module Emailing, du script d'envoi natif et de PHP CLI ;
+- vérifier l'enregistrement et l'activation de la tâche d'envoi programmé des emailings ;
+- consulter le nombre de campagnes validées arrivées à échéance et de campagnes partielles à reprendre ;
+- choisir le nombre maximal d'emailings traités par passage (`1`, `5`, `10` ou `25`).
 
-Les travaux planifiés, constantes, extrafields, modèles documentaires et données du registre sont conservés lors d'une désactivation/réactivation. Une désactivation arrête l'exécution sans réinitialiser la configuration.
+Les travaux planifiés (fréquence, activation et historique compris), constantes, extrafields, modèles documentaires et données du registre sont conservés lors d'une désactivation/réactivation. Une désactivation arrête l'exécution sans réinitialiser la configuration.
 
 Les onglets internes disponibles sont :
 

@@ -43,6 +43,7 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 require_once dol_buildpath('/lmdb/lib/lmdb.lib.php', 0);
 require_once dol_buildpath('/lmdb/class/lmdbcompatibility.class.php', 0);
 require_once dol_buildpath('/lmdb/class/lmdbinvoiceautosend.class.php', 0);
+require_once dol_buildpath('/lmdb/class/lmdbmailingautosend.class.php', 0);
 
 $langs->loadLangs(array('admin', 'bills', 'lmdb@lmdb'));
 
@@ -109,6 +110,25 @@ if ($action == 'saveautosend') {
 	exit;
 }
 
+if ($action == 'savescheduledmailing') {
+	if ($requestmethod != 'POST') {
+		accessforbidden();
+	}
+	$maxmailingsperrun = GETPOSTINT('lmdb_scheduled_mailing_max_per_run');
+	if (!in_array($maxmailingsperrun, array(1, 5, 10, 25), true)) {
+		setEventMessages($langs->trans('ErrorBadValueForParameter', 'lmdb_scheduled_mailing_max_per_run'), null, 'errors');
+	} else {
+		$result = dolibarr_set_const($db, 'LMDB_SCHEDULED_MAILING_MAX_PER_RUN', (string) $maxmailingsperrun, 'chaine', 0, '', (int) $conf->entity);
+		if ($result > 0) {
+			setEventMessages($langs->trans('LmdbScheduledMailingSettingsSaved'), null, 'mesgs');
+		} else {
+			setEventMessages($db->lasterror(), null, 'errors');
+		}
+	}
+	header('Location: '.$pageurl);
+	exit;
+}
+
 $form = new Form($db);
 $currentmodel = getDolGlobalString('FACTURE_ADDON_PDF');
 $modelregistered = lmdbIsInvoiceDocumentModelRegistered($db, (int) $conf->entity);
@@ -116,6 +136,8 @@ $featureavailable = LmdbCompatibility::isFeatureAvailable('invoice_pdf_lmdbspong
 $autosenddiagnostics = LmdbInvoiceAutoSend::getDiagnostics($db, (int) $conf->entity);
 $maxperrun = getDolGlobalInt('LMDB_AUTO_INVOICE_SEND_MAX_PER_RUN', 100);
 $minimuminvoiceid = getDolGlobalInt('LMDB_AUTO_INVOICE_SEND_MIN_ID');
+$scheduledmailingdiagnostics = LmdbMailingAutoSend::getDiagnostics($db, (int) $conf->entity);
+$maxmailingsperrun = getDolGlobalInt('LMDB_SCHEDULED_MAILING_MAX_PER_RUN', 10);
 
 llxHeader('', $langs->trans('LmdbSetup'));
 
@@ -220,6 +242,55 @@ print '</td></tr>';
 
 print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendMaxPerRun').'</td><td>';
 print $form->selectarray('lmdb_auto_invoice_send_max_per_run', array(25 => '25', 50 => '50', 100 => '100', 250 => '250'), $maxperrun, 0, 0, 0, '', 0, 0, 0, '', 'minwidth100', 1);
+print '</td></tr>';
+print '</table>';
+print '<div class="center"><input type="submit" class="button button-save" value="'.dol_escape_htmltag($langs->trans('Save')).'"></div>';
+print '</form>';
+
+print '<br>';
+
+print '<form method="POST" action="'.dol_escape_htmltag($pageurl).'">';
+print '<input type="hidden" name="token" value="'.newToken().'">';
+print '<input type="hidden" name="action" value="savescheduledmailing">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbScheduledMailingTitle').'</td></tr>';
+
+print '<tr class="oddeven"><td class="titlefield">'.$langs->trans('LmdbScheduledMailingModuleStatus').'</td><td>';
+if (isModEnabled('mailing')) {
+	print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('Available');
+	print ' - <a href="'.DOL_URL_ROOT.'/comm/mailing/list.php">'.$langs->trans('LmdbOpenMailingList').'</a>';
+} else {
+	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('RequiresMailingModule');
+}
+print '</td></tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingCronStatus').'</td><td>';
+if ($scheduledmailingdiagnostics['cron_registered'] && $scheduledmailingdiagnostics['cron_active']) {
+	print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('LmdbScheduledMailingCronActive');
+} elseif ($scheduledmailingdiagnostics['cron_registered']) {
+	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('LmdbScheduledMailingCronInactive');
+} else {
+	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('LmdbScheduledMailingCronMissing');
+}
+print ' - <a href="'.DOL_URL_ROOT.'/cron/list.php">'.$langs->trans('LmdbOpenScheduledJobs').'</a>';
+print '</td></tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingNativeSender').'</td><td>';
+if ($scheduledmailingdiagnostics['core_script_available'] && $scheduledmailingdiagnostics['php_cli_available'] && getDolGlobalString('MAILING_LIMIT_SENDBYCLI') !== '-1') {
+	print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('LmdbScheduledMailingNativeSenderAvailable');
+} elseif (!$scheduledmailingdiagnostics['core_script_available']) {
+	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('RequiresMailingCoreScript');
+} elseif (!$scheduledmailingdiagnostics['php_cli_available']) {
+	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('RequiresPhpCli');
+} else {
+	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('MailingCliDisabled');
+}
+print '</td></tr>';
+
+print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingDueValidatedCount').'</td><td>'.((int) $scheduledmailingdiagnostics['due_validated_count']).'</td></tr>';
+print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingDuePartialCount').'</td><td>'.((int) $scheduledmailingdiagnostics['due_partial_count']).'</td></tr>';
+print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingMaxPerRun').'</td><td>';
+print $form->selectarray('lmdb_scheduled_mailing_max_per_run', array(1 => '1', 5 => '5', 10 => '10', 25 => '25'), $maxmailingsperrun, 0, 0, 0, '', 0, 0, 0, '', 'minwidth100', 1);
 print '</td></tr>';
 print '</table>';
 print '<div class="center"><input type="submit" class="button button-save" value="'.dol_escape_htmltag($langs->trans('Save')).'"></div>';

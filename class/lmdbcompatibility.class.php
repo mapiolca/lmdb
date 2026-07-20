@@ -98,6 +98,8 @@ class LmdbCompatibility
 	 */
 	public static function getFeatures()
 	{
+		require_once dol_buildpath('/lmdb/class/lmdbmailingautosend.class.php', 0);
+
 		$features = array();
 
 		$reasons = array();
@@ -152,6 +154,42 @@ class LmdbCompatibility
 			'compatibility_check' => "DOL_VERSION >= 20.0.0; PHP_VERSION >= 8.0.0; isModEnabled('invoice'); isModEnabled('cron')",
 			'available' => empty($autoSendReasons),
 			'reasons' => $autoSendReasons,
+		);
+
+		$scheduledMailingReasons = array();
+		if (!self::isPhpVersionAtLeast('8.0.0')) {
+			$scheduledMailingReasons[] = 'RequiresPhp80';
+		}
+		if (!self::isDolibarrVersionAtLeast('20.0.0')) {
+			$scheduledMailingReasons[] = 'RequiresDolibarr20';
+		}
+		if (!isModEnabled('mailing')) {
+			$scheduledMailingReasons[] = 'RequiresMailingModule';
+		}
+		if (!isModEnabled('cron')) {
+			$scheduledMailingReasons[] = 'RequiresCronModule';
+		}
+		if (!LmdbMailingAutoSend::isNativeMailingScriptAvailable()) {
+			$scheduledMailingReasons[] = 'RequiresMailingCoreScript';
+		}
+		if (!LmdbMailingAutoSend::isPhpCliAvailable()) {
+			$scheduledMailingReasons[] = 'RequiresPhpCli';
+		}
+		if (getDolGlobalString('MAILING_LIMIT_SENDBYCLI') === '-1') {
+			$scheduledMailingReasons[] = 'MailingCliDisabled';
+		}
+
+		$features['scheduled_native_mailing_send'] = array(
+			'code' => 'scheduled_native_mailing_send',
+			'label' => 'LmdbFeatureScheduledMailingSend',
+			'description' => 'LmdbFeatureScheduledMailingSendDescription',
+			'min_dolibarr' => '20.0.0',
+			'core_available_from' => '20.0.0',
+			'module_available_from' => '20.0.0',
+			'min_php' => '8.0.0',
+			'compatibility_check' => "DOL_VERSION >= 20.0.0; PHP_VERSION >= 8.0.0; isModEnabled('mailing'); isModEnabled('cron'); native mailing CLI and PHP CLI available",
+			'available' => empty($scheduledMailingReasons),
+			'reasons' => $scheduledMailingReasons,
 		);
 
 		$counterReasons = array();

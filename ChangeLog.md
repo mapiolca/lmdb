@@ -1,5 +1,20 @@
 # ChangeLog
 
+## 1.2.0 - 2026-07-18
+
+- Ajout de l'extrafield date/heure `lmdb_scheduled_send_at` sur les emailings natifs Dolibarr.
+- Ajout du hook `mailingcard` pour enregistrer ce champ avec les mécanismes natifs ExtraFields sur Dolibarr v20+.
+- Ajout d'une tâche native exécutée toutes les cinq minutes pour prendre en charge les campagnes validées arrivées à échéance.
+- Délégation de l'envoi au script core `scripts/emailings/mailing-send.php`, sans duplication de la logique d'envoi Dolibarr.
+- Propagation explicite de l'entité Multicompany au processus PHP CLI et utilisation de la signature du valideur.
+- Ajout d'un verrou MySQL/MariaDB par campagne pour empêcher les doubles exécutions concurrentes.
+- Ajout d'un marqueur interne permettant de reprendre uniquement les campagnes partielles ayant initialement intégré le flux LMDB à l'état validé.
+- Reprise des destinataires en erreur après un envoi partiel et classement automatique en **Envoyé complètement** lorsque tous les destinataires ont été traités.
+- Exclusion définitive des campagnes déjà envoyées complètement et des campagnes sans date programmée.
+- Ajout des diagnostics, de la limite de campagnes par passage et des contrôles de compatibilité dans les réglages LMDB.
+- Conservation des réglages et de l'historique des travaux planifiés lors d'une désactivation/réactivation du module.
+- Ajout des traductions françaises et anglaises et mise à jour de la documentation du module.
+
 ## 1.1.0 - 2026-07-14
 
 - Transfert de l'envoi automatique des factures récurrentes depuis le module Delegation vers LMDB.

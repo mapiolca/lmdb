@@ -47,7 +47,7 @@ class modLmdb extends DolibarrModules
 		$this->descriptionlong = 'LmdbModuleDescriptionLong';
 		$this->editor_name = 'Les Métiers du Bâtiment';
 		$this->editor_url = 'https://lesmetiersdubatiment.fr';
-		$this->version = '1.1.0';
+		$this->version = '1.2.0';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'lmdb@lmdb';
 
@@ -63,7 +63,9 @@ class modLmdb extends DolibarrModules
 			'theme' => 0,
 			'css' => array(),
 			'js' => array(),
-			'hooks' => array(),
+			'hooks' => array(
+				'mailingcard',
+			),
 			'moduleforexternal' => 0,
 			'websitetemplates' => 0,
 			'captcha' => 0,
@@ -101,6 +103,20 @@ class modLmdb extends DolibarrModules
 				'test' => 'isModEnabled("lmdb") && isModEnabled("invoice")',
 				'priority' => 60,
 			),
+			1 => array(
+				'label' => 'LmdbScheduledMailingCronLabel:lmdb@lmdb',
+				'jobtype' => 'method',
+				'class' => '/lmdb/class/lmdbmailingautosend.class.php',
+				'objectname' => 'LmdbMailingAutoSend',
+				'method' => 'run',
+				'parameters' => '',
+				'comment' => 'LmdbScheduledMailingCronComment',
+				'frequency' => 5,
+				'unitfrequency' => 60,
+				'status' => 1,
+				'test' => 'isModEnabled("lmdb") && isModEnabled("mailing") && isModEnabled("cron")',
+				'priority' => 50,
+			),
 		);
 		$this->rights = array();
 		$this->menu = array();
@@ -137,13 +153,24 @@ class modLmdb extends DolibarrModules
 		if ($this->installInvoiceAutoSendExtraFields() <= 0) {
 			return 0;
 		}
+		if ($this->installScheduledMailingExtraField() <= 0) {
+			return 0;
+		}
 
 		if ($this->initializeInvoiceAutoSendConstants((int) $conf->entity) <= 0) {
+			return 0;
+		}
+		if ($this->initializeScheduledMailingConstants((int) $conf->entity) <= 0) {
 			return 0;
 		}
 
 		require_once dol_buildpath('/lmdb/class/lmdbinvoiceautosend.class.php', 0);
 		if (LmdbInvoiceAutoSend::normalizeCronTranslationKeys($this->db, (int) $conf->entity) <= 0) {
+			$this->error = $this->db->lasterror();
+			return 0;
+		}
+		require_once dol_buildpath('/lmdb/class/lmdbmailingautosend.class.php', 0);
+		if (LmdbMailingAutoSend::normalizeCronTranslationKeys($this->db, (int) $conf->entity) <= 0) {
 			$this->error = $this->db->lasterror();
 			return 0;
 		}
@@ -174,7 +201,12 @@ class modLmdb extends DolibarrModules
 	 */
 	public function remove($options = '')
 	{
-		return $this->_remove(array(), $options);
+		$cronjobs = $this->cronjobs;
+		$this->cronjobs = array();
+		$result = $this->_remove(array(), $options);
+		$this->cronjobs = $cronjobs;
+
+		return $result;
 	}
 
 	/**
@@ -266,6 +298,69 @@ class modLmdb extends DolibarrModules
 	}
 
 	/**
+	 * Add the scheduled send date to native Dolibarr email campaigns.
+	 *
+	 * The visibility value 4 keeps the field out of the creation form while
+	 * retaining it on view and list screens and allowing native inline editing.
+	 * Existing definitions and values are updated conservatively and never
+	 * removed on deactivation.
+	 *
+	 * @return int 1 if OK, 0 if KO
+	 */
+	private function installScheduledMailingExtraField()
+	{
+		global $conf;
+
+		require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
+
+		/** @var array<int,array{attrname:string,label:string,pos:int,alwayseditable:int,perms:string,list:string,help:string}> $definitions */
+		$definitions = array(
+			array(
+				'attrname' => 'lmdb_scheduled_send_at',
+				'label' => 'LmdbScheduledMailingSendAt',
+				'pos' => 100,
+				'alwayseditable' => 1,
+				'perms' => '$user->admin || $user->hasRight("mailing", "valider")',
+				'list' => '4',
+				'help' => 'LmdbScheduledMailingSendAtHelp',
+			),
+			array(
+				'attrname' => 'lmdb_scheduled_started_at',
+				'label' => 'LmdbScheduledMailingStartedAt',
+				'pos' => 101,
+				'alwayseditable' => 0,
+				'perms' => '0',
+				'list' => '0',
+				'help' => '',
+			),
+		);
+
+		foreach ($definitions as $definition) {
+			$extrafields = new ExtraFields($this->db);
+			$existing = $extrafields->fetch_name_optionals_label('mailing', true, $definition['attrname']);
+			if (isset($existing[$definition['attrname']])) {
+				$result = $extrafields->updateExtraField(
+					$definition['attrname'], $definition['label'], 'datetime', $definition['pos'], '', 'mailing', 0, 0, '', '',
+					$definition['alwayseditable'], $definition['perms'], $definition['list'], $definition['help'], '',
+					(string) ((int) $conf->entity), 'lmdb@lmdb', 'isModEnabled("lmdb") && isModEnabled("mailing")', 0, 0, array()
+				);
+			} else {
+				$result = $extrafields->addExtraField(
+					$definition['attrname'], $definition['label'], 'datetime', $definition['pos'], '', 'mailing', 0, 0, '', '',
+					$definition['alwayseditable'], $definition['perms'], $definition['list'], $definition['help'], '',
+					(string) ((int) $conf->entity), 'lmdb@lmdb', 'isModEnabled("lmdb") && isModEnabled("mailing")', 0, 0, array()
+				);
+			}
+			if ($result <= 0) {
+				$this->error = $extrafields->error;
+				return 0;
+			}
+		}
+
+		return 1;
+	}
+
+	/**
 	 * Create conservative defaults only when they do not already exist.
 	 *
 	 * @param int $entity Entity id
@@ -292,6 +387,27 @@ class modLmdb extends DolibarrModules
 			}
 			$minimumInvoiceId = (int) $obj->maxid + 1;
 			$result = dolibarr_set_const($this->db, 'LMDB_AUTO_INVOICE_SEND_MIN_ID', (string) $minimumInvoiceId, 'chaine', 0, '', (int) $entity);
+			if ($result <= 0) {
+				$this->error = $this->db->lasterror();
+				return 0;
+			}
+		}
+
+		return 1;
+	}
+
+	/**
+	 * Create the scheduled mailing processing limit only when absent.
+	 *
+	 * @param int $entity Entity id
+	 * @return int 1 if OK, 0 if KO
+	 */
+	private function initializeScheduledMailingConstants($entity)
+	{
+		require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+
+		if (getDolGlobalString('LMDB_SCHEDULED_MAILING_MAX_PER_RUN') === '') {
+			$result = dolibarr_set_const($this->db, 'LMDB_SCHEDULED_MAILING_MAX_PER_RUN', '10', 'chaine', 0, '', (int) $entity);
 			if ($result <= 0) {
 				$this->error = $this->db->lasterror();
 				return 0;
