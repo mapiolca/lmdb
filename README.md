@@ -30,7 +30,7 @@ img/object_lmdb.png
 
 ### Programmation des emailings natifs
 
-LMDB ajoute l'extrafield natif **Date et heure d'envoi programmées** (`lmdb_scheduled_send_at`) sur la fiche des emailings Dolibarr. Le champ utilise le sélecteur date/heure du core et peut être renseigné ou effacé tant que la campagne est au brouillon ou validée. Une valeur vide désactive la programmation.
+LMDB ajoute par le hook natif `mailingcard` le champ **Date et heure d'envoi programmées** sur la fiche des emailings Dolibarr. Le champ utilise le sélecteur date/heure du core et peut être renseigné ou effacé tant que la campagne est au brouillon ou validée. Une valeur vide désactive la programmation. Les dates sont conservées dans la table normalisée `lmdb_mailing_schedule`, propre au module et filtrée par entité ; aucune table d'extrafields du module Emailing n'est requise.
 
 La tâche native **Envoi programmé LMDB des emailings natifs** s'exécute toutes les cinq minutes. Elle :
 
@@ -141,7 +141,7 @@ Depuis cette page, un administrateur peut :
 - consulter le nombre de campagnes validées arrivées à échéance et de campagnes partielles à reprendre ;
 - choisir le nombre maximal d'emailings traités par passage (`1`, `5`, `10` ou `25`).
 
-Les travaux planifiés (fréquence, activation et historique compris), constantes, extrafields, modèles documentaires et données du registre sont conservés lors d'une désactivation/réactivation. Une désactivation arrête l'exécution sans réinitialiser la configuration.
+Les travaux planifiés (fréquence, activation et historique compris), constantes, extrafields de facturation, programmations d'emailings, modèles documentaires et données du registre sont conservés lors d'une désactivation/réactivation. Une désactivation arrête l'exécution sans réinitialiser la configuration.
 
 Les onglets internes disponibles sont :
 

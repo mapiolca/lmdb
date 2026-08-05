@@ -125,11 +125,11 @@ LmdbAutoInvoiceSendTriggerWarning=La facture %s a été envoyée, mais le trigge
 
 LmdbScheduledMailingSendAt=Date et heure d'envoi programmées
 LmdbScheduledMailingSendAtHelp=L'emailing sera pris en charge par la tâche planifiée lorsqu'il sera validé et que cette date sera atteinte. Laisser vide pour désactiver la programmation.
-LmdbScheduledMailingStartedAt=Début interne de l'envoi programmé
 LmdbScheduledMailingDateSaved=La date d'envoi programmée a été enregistrée.
 LmdbScheduledMailingEmailOnly=La programmation LMDB est réservée aux campagnes de type email.
 LmdbScheduledMailingDateLocked=La date d'envoi ne peut plus être modifiée après le début de l'envoi.
-LmdbScheduledMailingExtraFieldMissing=Le champ de programmation de l'emailing n'est pas installé. Réactivez le module LMDB pour réparer sa définition.
+LmdbScheduledMailingInvalidDate=La date et l'heure d'envoi programmées sont invalides.
+LmdbScheduledMailingStorageError=Impossible d'enregistrer ou de lire la programmation de l'emailing.
 LmdbScheduledMailingCronLabel=Envoi programmé LMDB des emailings natifs
 LmdbScheduledMailingCronComment=Envoie les emailings Dolibarr validés dont la date et l'heure programmées sont atteintes, puis les classe comme envoyés complètement.
 LmdbScheduledMailingTitle=Envoi programmé des emailings natifs

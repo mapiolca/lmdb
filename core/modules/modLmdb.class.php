@@ -153,9 +153,6 @@ class modLmdb extends DolibarrModules
 		if ($this->installInvoiceAutoSendExtraFields() <= 0) {
 			return 0;
 		}
-		if ($this->installScheduledMailingExtraField() <= 0) {
-			return 0;
-		}
 
 		if ($this->installRecurringInvoiceCustomerRefExtraField() <= 0) {
 			return 0;
@@ -294,69 +291,6 @@ class modLmdb extends DolibarrModules
 					0,
 					0,
 					array()
-				);
-			}
-			if ($result <= 0) {
-				$this->error = $extrafields->error;
-				return 0;
-			}
-		}
-
-		return 1;
-	}
-
-	/**
-	 * Add the scheduled send date to native Dolibarr email campaigns.
-	 *
-	 * The visibility value 4 keeps the field out of the creation form while
-	 * retaining it on view and list screens and allowing native inline editing.
-	 * Existing definitions and values are updated conservatively and never
-	 * removed on deactivation.
-	 *
-	 * @return int 1 if OK, 0 if KO
-	 */
-	private function installScheduledMailingExtraField()
-	{
-		global $conf;
-
-		require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
-
-		/** @var array<int,array{attrname:string,label:string,pos:int,alwayseditable:int,perms:string,list:string,help:string}> $definitions */
-		$definitions = array(
-			array(
-				'attrname' => 'lmdb_scheduled_send_at',
-				'label' => 'LmdbScheduledMailingSendAt',
-				'pos' => 100,
-				'alwayseditable' => 1,
-				'perms' => '$user->admin || $user->hasRight("mailing", "valider")',
-				'list' => '4',
-				'help' => 'LmdbScheduledMailingSendAtHelp',
-			),
-			array(
-				'attrname' => 'lmdb_scheduled_started_at',
-				'label' => 'LmdbScheduledMailingStartedAt',
-				'pos' => 101,
-				'alwayseditable' => 0,
-				'perms' => '0',
-				'list' => '0',
-				'help' => '',
-			),
-		);
-
-		foreach ($definitions as $definition) {
-			$extrafields = new ExtraFields($this->db);
-			$existing = $extrafields->fetch_name_optionals_label('mailing', true, $definition['attrname']);
-			if (isset($existing[$definition['attrname']])) {
-				$result = $extrafields->updateExtraField(
-					$definition['attrname'], $definition['label'], 'datetime', $definition['pos'], '', 'mailing', 0, 0, '', '',
-					$definition['alwayseditable'], $definition['perms'], $definition['list'], $definition['help'], '',
-					(string) ((int) $conf->entity), 'lmdb@lmdb', 'isModEnabled("lmdb") && isModEnabled("mailing")', 0, 0, array()
-				);
-			} else {
-				$result = $extrafields->addExtraField(
-					$definition['attrname'], $definition['label'], 'datetime', $definition['pos'], '', 'mailing', 0, 0, '', '',
-					$definition['alwayseditable'], $definition['perms'], $definition['list'], $definition['help'], '',
-					(string) ((int) $conf->entity), 'lmdb@lmdb', 'isModEnabled("lmdb") && isModEnabled("mailing")', 0, 0, array()
 				);
 			}
 			if ($result <= 0) {

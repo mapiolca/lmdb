@@ -2,8 +2,10 @@
 
 ## 1.2.0 - 2026-07-18
 
-- Ajout de l'extrafield date/heure `lmdb_scheduled_send_at` sur les emailings natifs Dolibarr.
-- Ajout du hook `mailingcard` pour enregistrer ce champ avec les mécanismes natifs ExtraFields sur Dolibarr v20+.
+- Ajout de la table normalisée `lmdb_mailing_schedule`, rattachée aux emailings natifs par `fk_mailing` et isolée par entité.
+- Ajout par le hook `mailingcard` du champ date/heure d'envoi programmé avec le datepicker natif Dolibarr.
+- Suppression de toute dépendance à `mailing_extrafields`, table absente du schéma Dolibarr 23.0.3.
+- Suppression de la programmation liée lors de la suppression native d'un emailing via le trigger core `MAILING_DELETE`.
 - Ajout d'une tâche native exécutée toutes les cinq minutes pour prendre en charge les campagnes validées arrivées à échéance.
 - Délégation de l'envoi au script core `scripts/emailings/mailing-send.php`, sans duplication de la logique d'envoi Dolibarr.
 - Propagation explicite de l'entité Multicompany au processus PHP CLI et utilisation de la signature du valideur.

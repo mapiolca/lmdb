@@ -177,13 +177,13 @@ class LmdbMailingAutoSend
 		if (isModEnabled('mailing')) {
 			$sql = "SELECT m.statut, COUNT(m.rowid) AS nb";
 			$sql .= " FROM ".MAIN_DB_PREFIX."mailing AS m";
-			$sql .= " INNER JOIN ".MAIN_DB_PREFIX."mailing_extrafields AS me ON me.fk_object = m.rowid";
+			$sql .= " INNER JOIN ".MAIN_DB_PREFIX."lmdb_mailing_schedule AS ms ON ms.fk_mailing = m.rowid AND ms.entity = m.entity";
 			$sql .= " WHERE m.entity = ".((int) $entity);
 			$sql .= " AND m.messtype = 'email'";
 			$sql .= " AND (m.statut = ".Mailing::STATUS_VALIDATED;
-			$sql .= " OR (m.statut = ".Mailing::STATUS_SENTPARTIALY." AND me.lmdb_scheduled_started_at IS NOT NULL))";
-			$sql .= " AND me.lmdb_scheduled_send_at IS NOT NULL";
-			$sql .= " AND me.lmdb_scheduled_send_at <= '".$db->idate(dol_now())."'";
+			$sql .= " OR (m.statut = ".Mailing::STATUS_SENTPARTIALY." AND ms.scheduled_started_at IS NOT NULL))";
+			$sql .= " AND ms.scheduled_send_at IS NOT NULL";
+			$sql .= " AND ms.scheduled_send_at <= '".$db->idate(dol_now())."'";
 			$sql .= " GROUP BY m.statut";
 			$resql = $db->query($sql);
 			if ($resql) {
@@ -254,15 +254,15 @@ class LmdbMailingAutoSend
 		$candidates = array();
 		$sql = "SELECT m.rowid, m.statut, u.login AS validator_login";
 		$sql .= " FROM ".MAIN_DB_PREFIX."mailing AS m";
-		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."mailing_extrafields AS me ON me.fk_object = m.rowid";
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."lmdb_mailing_schedule AS ms ON ms.fk_mailing = m.rowid AND ms.entity = m.entity";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user AS u ON u.rowid = m.fk_user_valid";
 		$sql .= " WHERE m.entity = ".((int) $entity);
 		$sql .= " AND m.messtype = 'email'";
 		$sql .= " AND (m.statut = ".Mailing::STATUS_VALIDATED;
-		$sql .= " OR (m.statut = ".Mailing::STATUS_SENTPARTIALY." AND me.lmdb_scheduled_started_at IS NOT NULL))";
-		$sql .= " AND me.lmdb_scheduled_send_at IS NOT NULL";
-		$sql .= " AND me.lmdb_scheduled_send_at <= '".$this->db->idate(dol_now())."'";
-		$sql .= " ORDER BY me.lmdb_scheduled_send_at ASC, m.rowid ASC";
+		$sql .= " OR (m.statut = ".Mailing::STATUS_SENTPARTIALY." AND ms.scheduled_started_at IS NOT NULL))";
+		$sql .= " AND ms.scheduled_send_at IS NOT NULL";
+		$sql .= " AND ms.scheduled_send_at <= '".$this->db->idate(dol_now())."'";
+		$sql .= " ORDER BY ms.scheduled_send_at ASC, m.rowid ASC";
 		$sql .= $this->db->plimit((int) $maxPerRun);
 		$resql = $this->db->query($sql);
 		if (!$resql) {
@@ -372,17 +372,17 @@ class LmdbMailingAutoSend
 	 */
 	private function fetchCampaignState($campaignId, $entity)
 	{
-		$sql = "SELECT m.statut, me.lmdb_scheduled_started_at, COUNT(mc.rowid) AS remaining_targets";
+		$sql = "SELECT m.statut, ms.scheduled_started_at, COUNT(mc.rowid) AS remaining_targets";
 		$sql .= ", SUM(CASE WHEN mc.statut < 0 THEN 1 ELSE 0 END) AS failed_targets";
 		$sql .= " FROM ".MAIN_DB_PREFIX."mailing AS m";
-		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."mailing_extrafields AS me ON me.fk_object = m.rowid";
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."lmdb_mailing_schedule AS ms ON ms.fk_mailing = m.rowid AND ms.entity = m.entity";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."mailing_cibles AS mc ON mc.fk_mailing = m.rowid AND mc.statut < 1";
 		$sql .= " WHERE m.rowid = ".((int) $campaignId);
 		$sql .= " AND m.entity = ".((int) $entity);
 		$sql .= " AND m.messtype = 'email'";
-		$sql .= " AND me.lmdb_scheduled_send_at IS NOT NULL";
-		$sql .= " AND me.lmdb_scheduled_send_at <= '".$this->db->idate(dol_now())."'";
-		$sql .= " GROUP BY m.rowid, m.statut, me.lmdb_scheduled_started_at";
+		$sql .= " AND ms.scheduled_send_at IS NOT NULL";
+		$sql .= " AND ms.scheduled_send_at <= '".$this->db->idate(dol_now())."'";
+		$sql .= " GROUP BY m.rowid, m.statut, ms.scheduled_started_at";
 		$resql = $this->db->query($sql);
 		if (!$resql || !is_object($obj = $this->db->fetch_object($resql))) {
 			return null;
@@ -392,7 +392,7 @@ class LmdbMailingAutoSend
 			'status' => (int) $obj->statut,
 			'remaining_targets' => (int) $obj->remaining_targets,
 			'failed_targets' => (int) $obj->failed_targets,
-			'scheduled_started' => !empty($obj->lmdb_scheduled_started_at),
+			'scheduled_started' => !empty($obj->scheduled_started_at),
 		);
 	}
 
@@ -408,15 +408,16 @@ class LmdbMailingAutoSend
 	 */
 	private function markCampaignStarted($campaignId, $entity)
 	{
-		$sql = "UPDATE ".MAIN_DB_PREFIX."mailing_extrafields AS me";
-		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."mailing AS m ON m.rowid = me.fk_object";
-		$sql .= " SET me.lmdb_scheduled_started_at = COALESCE(me.lmdb_scheduled_started_at, '".$this->db->idate(dol_now())."')";
-		$sql .= " WHERE me.fk_object = ".((int) $campaignId);
+		$sql = "UPDATE ".MAIN_DB_PREFIX."lmdb_mailing_schedule AS ms";
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."mailing AS m ON m.rowid = ms.fk_mailing AND m.entity = ms.entity";
+		$sql .= " SET ms.scheduled_started_at = COALESCE(ms.scheduled_started_at, '".$this->db->idate(dol_now())."')";
+		$sql .= " WHERE ms.fk_mailing = ".((int) $campaignId);
+		$sql .= " AND ms.entity = ".((int) $entity);
 		$sql .= " AND m.entity = ".((int) $entity);
 		$sql .= " AND m.messtype = 'email'";
 		$sql .= " AND m.statut = ".Mailing::STATUS_VALIDATED;
-		$sql .= " AND me.lmdb_scheduled_send_at IS NOT NULL";
-		$sql .= " AND me.lmdb_scheduled_send_at <= '".$this->db->idate(dol_now())."'";
+		$sql .= " AND ms.scheduled_send_at IS NOT NULL";
+		$sql .= " AND ms.scheduled_send_at <= '".$this->db->idate(dol_now())."'";
 
 		$resql = $this->db->query($sql);
 		if (!$resql) {
