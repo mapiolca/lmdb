@@ -37,13 +37,15 @@ La tâche native **Envoi programmé LMDB des emailings natifs** s'exécute toute
 - sélectionne uniquement les campagnes email de l'entité courante ayant une date programmée atteinte ;
 - fait entrer dans le traitement automatique uniquement les campagnes à l'état **Validé** ;
 - reprend les campagnes passées à l'état partiel par ce traitement lorsque des destinataires en erreur doivent être réessayés ;
-- délègue l'envoi au script officiel `scripts/emailings/mailing-send.php`, afin de conserver les destinataires, substitutions, désabonnements, pièces jointes, réglages SMTP et limites natifs ;
-- transmet l'entité courante au processus CLI et utilise la signature de l'utilisateur ayant validé la campagne ;
+- utilise directement le mécanisme Web natif Dolibarr (`CMailFile`, substitutions, désabonnements, suivi de lecture, pièces jointes et réglages SMTP), sans exécutable PHP CLI secondaire ;
+- respecte `MAILING_LIMIT_SENDBYWEB` comme taille maximale de chaque lot et enchaîne les lots dans le même passage tant que des destinataires non traités subsistent ;
+- utilise la signature de l'utilisateur ayant validé la campagne ;
 - pose un verrou MySQL/MariaDB par campagne pour éviter deux exécutions LMDB concurrentes ;
+- conserve l'état **Envoyé partiellement** lorsque des erreurs subsistent, puis réessaie les destinataires concernés au passage suivant sans les relancer indéfiniment dans la même exécution ;
 - passe l'emailing à l'état **Envoyé complètement** dès qu'aucun destinataire non envoyé ou en erreur ne subsiste ;
 - ignore ensuite définitivement les campagnes à l'état **Envoyé complètement**.
 
-Les campagnes sans date programmée, au brouillon, déjà envoyées complètement ou d'une autre entité sont ignorées. Le module Emailing, les Travaux planifiés, le script CLI natif de Dolibarr et un exécutable PHP CLI sont requis. La constante core `MAILING_LIMIT_SENDBYCLI=-1` désactive également cette fonctionnalité.
+Les campagnes sans date programmée, au brouillon, déjà envoyées complètement ou d'une autre entité sont ignorées. Les modules Emailing et Travaux planifiés sont requis. L'envoi Web doit être autorisé dans la configuration du module Emailing avec une valeur `MAILING_LIMIT_SENDBYWEB` supérieure à zéro. PHP CLI et les fonctions système `exec`, `shell_exec` ou `proc_open` ne sont pas nécessaires.
 
 ### Référence client issue de la facture récurrente
 

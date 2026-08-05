@@ -169,14 +169,11 @@ class LmdbCompatibility
 		if (!isModEnabled('cron')) {
 			$scheduledMailingReasons[] = 'RequiresCronModule';
 		}
-		if (!LmdbMailingAutoSend::isNativeMailingScriptAvailable()) {
-			$scheduledMailingReasons[] = 'RequiresMailingCoreScript';
+		if (!LmdbMailingAutoSend::isNativeWebSenderAvailable()) {
+			$scheduledMailingReasons[] = 'RequiresMailingWebSender';
 		}
-		if (!LmdbMailingAutoSend::isPhpCliAvailable()) {
-			$scheduledMailingReasons[] = 'RequiresPhpCli';
-		}
-		if (getDolGlobalString('MAILING_LIMIT_SENDBYCLI') === '-1') {
-			$scheduledMailingReasons[] = 'MailingCliDisabled';
+		if (getDolGlobalInt('MAILING_LIMIT_SENDBYWEB') <= 0) {
+			$scheduledMailingReasons[] = 'MailingWebSendDisabled';
 		}
 
 		$features['scheduled_native_mailing_send'] = array(
@@ -187,7 +184,7 @@ class LmdbCompatibility
 			'core_available_from' => '20.0.0',
 			'module_available_from' => '20.0.0',
 			'min_php' => '8.0.0',
-			'compatibility_check' => "DOL_VERSION >= 20.0.0; PHP_VERSION >= 8.0.0; isModEnabled('mailing'); isModEnabled('cron'); native mailing CLI and PHP CLI available",
+			'compatibility_check' => "DOL_VERSION >= 20.0.0; PHP_VERSION >= 8.0.0; isModEnabled('mailing'); isModEnabled('cron'); native CMailFile Web sender available; MAILING_LIMIT_SENDBYWEB > 0",
 			'available' => empty($scheduledMailingReasons),
 			'reasons' => $scheduledMailingReasons,
 		);

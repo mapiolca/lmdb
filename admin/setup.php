@@ -323,19 +323,18 @@ print ' - <a href="'.DOL_URL_ROOT.'/cron/list.php">'.$langs->trans('LmdbOpenSche
 print '</td></tr>';
 
 print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingNativeSender').'</td><td>';
-if ($scheduledmailingdiagnostics['core_script_available'] && $scheduledmailingdiagnostics['php_cli_available'] && getDolGlobalString('MAILING_LIMIT_SENDBYCLI') !== '-1') {
+if ($scheduledmailingdiagnostics['native_web_sender_available'] && $scheduledmailingdiagnostics['web_recipient_limit'] > 0) {
 	print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('LmdbScheduledMailingNativeSenderAvailable');
-} elseif (!$scheduledmailingdiagnostics['core_script_available']) {
-	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('RequiresMailingCoreScript');
-} elseif (!$scheduledmailingdiagnostics['php_cli_available']) {
-	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('RequiresPhpCli');
+} elseif (!$scheduledmailingdiagnostics['native_web_sender_available']) {
+	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('RequiresMailingWebSender');
 } else {
-	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('MailingCliDisabled');
+	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('MailingWebSendDisabled');
 }
 print '</td></tr>';
 
 print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingDueValidatedCount').'</td><td>'.((int) $scheduledmailingdiagnostics['due_validated_count']).'</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingDuePartialCount').'</td><td>'.((int) $scheduledmailingdiagnostics['due_partial_count']).'</td></tr>';
+print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingRecipientsPerBatch').'</td><td>'.((int) $scheduledmailingdiagnostics['web_recipient_limit']).'</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingMaxPerRun').'</td><td>';
 print $form->selectarray('lmdb_scheduled_mailing_max_per_run', array(1 => '1', 5 => '5', 10 => '10', 25 => '25'), $maxmailingsperrun, 0, 0, 0, '', 0, 0, 0, '', 'minwidth100', 1);
 print '</td></tr>';
