@@ -154,6 +154,33 @@ class LmdbCompatibility
 			'reasons' => $autoSendReasons,
 		);
 
+		$customerRefReasons = array();
+		if (!self::isPhpVersionAtLeast('8.0.0')) {
+			$customerRefReasons[] = 'RequiresPhp80';
+		}
+		if (!self::isDolibarrVersionAtLeast('20.0.0')) {
+			$customerRefReasons[] = 'RequiresDolibarr20';
+		}
+		if (!isModEnabled('invoice')) {
+			$customerRefReasons[] = 'RequiresInvoiceModule';
+		}
+		if (isModEnabled('capinvoicereffromrec')) {
+			$customerRefReasons[] = 'RequiresCapInvoiceRefFromRecDisabled';
+		}
+
+		$features['recurring_invoice_customer_ref'] = array(
+			'code' => 'recurring_invoice_customer_ref',
+			'label' => 'LmdbFeatureRecurringInvoiceCustomerRef',
+			'description' => 'LmdbFeatureRecurringInvoiceCustomerRefDescription',
+			'min_dolibarr' => '20.0.0',
+			'core_available_from' => '20.0.0',
+			'module_available_from' => '20.0.0',
+			'min_php' => '8.0.0',
+			'compatibility_check' => "DOL_VERSION >= 20.0.0; PHP_VERSION >= 8.0.0; isModEnabled('invoice'); !isModEnabled('capinvoicereffromrec')",
+			'available' => empty($customerRefReasons),
+			'reasons' => $customerRefReasons,
+		);
+
 		$counterReasons = array();
 		if (!self::isDolibarrVersionAtLeast('23.0.0')) {
 			$counterReasons[] = 'RequiresDolibarr23InvoiceEmailCounter';

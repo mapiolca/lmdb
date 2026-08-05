@@ -181,6 +181,53 @@ print '</table>';
 
 print '<br>';
 
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbRecurringInvoiceCustomerRefTitle').'</td></tr>';
+
+print '<tr class="oddeven">';
+print '<td class="titlefield">'.$form->textwithpicto($langs->trans('LmdbRecurringInvoiceCustomerRefEnabled'), $langs->trans('LmdbRecurringInvoiceCustomerRefEnabledHelp')).'</td>';
+print '<td>'.ajax_constantonoff('LMDB_RECURRING_INVOICE_CUSTOMER_REF').'</td>';
+print '</tr>';
+
+print '<tr class="oddeven">';
+print '<td>'.$langs->trans('LmdbRecurringInvoiceCustomerRefField').'</td>';
+print '<td><span class="badge">capinvoicereffromrec_ref</span></td>';
+print '</tr>';
+
+print '<tr class="oddeven">';
+print '<td>'.$form->textwithpicto($langs->trans('LmdbRecurringInvoiceCustomerRefSubstitutions'), $langs->trans('LmdbRecurringInvoiceCustomerRefSubstitutionsHelp')).'</td>';
+print '<td>';
+$customerRefSubstitutions = array(
+	'__INVOICE_PREVIOUS_MONTH__',
+	'__INVOICE_MONTH__',
+	'__INVOICE_NEXT_MONTH__',
+	'__INVOICE_PREVIOUS_MONTH_TEXT__',
+	'__INVOICE_MONTH_TEXT__',
+	'__INVOICE_NEXT_MONTH_TEXT__',
+	'__INVOICE_PREVIOUS_YEAR__',
+	'__INVOICE_YEAR__',
+	'__INVOICE_NEXT_YEAR__',
+);
+foreach ($customerRefSubstitutions as $index => $substitution) {
+	print ($index > 0 ? '<br>' : '').'<code>'.dol_escape_htmltag($substitution).'</code>';
+}
+print '</td>';
+print '</tr>';
+
+print '<tr class="oddeven">';
+print '<td>'.$langs->trans('LmdbLegacyCustomerRefModuleStatus').'</td>';
+print '<td>';
+if (isModEnabled('capinvoicereffromrec')) {
+	print img_picto($langs->trans('Warning'), 'warning').' <strong>'.$langs->trans('LmdbLegacyCustomerRefModuleConflict').'</strong>';
+} else {
+	print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('LmdbLegacyCustomerRefModuleNotActive');
+}
+print '</td>';
+print '</tr>';
+print '</table>';
+
+print '<br>';
+
 print '<form method="POST" action="'.dol_escape_htmltag($pageurl).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="action" value="saveautosend">';

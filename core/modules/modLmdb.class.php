@@ -47,14 +47,14 @@ class modLmdb extends DolibarrModules
 		$this->descriptionlong = 'LmdbModuleDescriptionLong';
 		$this->editor_name = 'Les Métiers du Bâtiment';
 		$this->editor_url = 'https://lesmetiersdubatiment.fr';
-		$this->version = '1.1.0';
+		$this->version = '1.2.0';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'lmdb@lmdb';
 
 		$this->module_parts = array(
 			'triggers' => 1,
 			'login' => 0,
-			'substitutions' => 0,
+			'substitutions' => 1,
 			'menus' => 0,
 			'tpl' => 0,
 			'barcode' => 0,
@@ -138,7 +138,15 @@ class modLmdb extends DolibarrModules
 			return 0;
 		}
 
+		if ($this->installRecurringInvoiceCustomerRefExtraField() <= 0) {
+			return 0;
+		}
+
 		if ($this->initializeInvoiceAutoSendConstants((int) $conf->entity) <= 0) {
+			return 0;
+		}
+
+		if ($this->initializeRecurringInvoiceCustomerRefConstant((int) $conf->entity) <= 0) {
 			return 0;
 		}
 
@@ -266,6 +274,81 @@ class modLmdb extends DolibarrModules
 	}
 
 	/**
+	 * Add or take ownership of the historical recurring invoice customer reference.
+	 *
+	 * The original code is preserved so values created by CapInvoiceRefFromRec are
+	 * immediately reused without data migration.
+	 *
+	 * @return int 1 if OK, 0 if KO
+	 */
+	private function installRecurringInvoiceCustomerRefExtraField()
+	{
+		global $conf;
+
+		require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
+		require_once dol_buildpath('/lmdb/class/lmdbinvoicecustomerref.class.php', 0);
+
+		$extrafields = new ExtraFields($this->db);
+		$existing = $extrafields->fetch_name_optionals_label('facture_rec', true, LmdbInvoiceCustomerRef::EXTRAFIELD_CODE);
+		if (is_array($existing) && isset($existing[LmdbInvoiceCustomerRef::EXTRAFIELD_CODE])) {
+			$result = $extrafields->updateExtraField(
+				LmdbInvoiceCustomerRef::EXTRAFIELD_CODE,
+				'LmdbRecurringInvoiceCustomerRef',
+				'varchar',
+				5,
+				'255',
+				'facture_rec',
+				0,
+				0,
+				'',
+				'',
+				1,
+				'',
+				'1',
+				'LmdbRecurringInvoiceCustomerRefHelp',
+				'',
+				(string) ((int) $conf->entity),
+				'lmdb@lmdb',
+				'isModEnabled("lmdb")',
+				0,
+				0,
+				array()
+			);
+		} else {
+			$result = $extrafields->addExtraField(
+				LmdbInvoiceCustomerRef::EXTRAFIELD_CODE,
+				'LmdbRecurringInvoiceCustomerRef',
+				'varchar',
+				5,
+				'255',
+				'facture_rec',
+				0,
+				0,
+				'',
+				'',
+				1,
+				'',
+				'1',
+				'LmdbRecurringInvoiceCustomerRefHelp',
+				'',
+				(string) ((int) $conf->entity),
+				'lmdb@lmdb',
+				'isModEnabled("lmdb")',
+				0,
+				0,
+				array()
+			);
+		}
+
+		if ($result <= 0) {
+			$this->error = $extrafields->error;
+			return 0;
+		}
+
+		return 1;
+	}
+
+	/**
 	 * Create conservative defaults only when they do not already exist.
 	 *
 	 * @param int $entity Entity id
@@ -296,6 +379,61 @@ class modLmdb extends DolibarrModules
 				$this->error = $this->db->lasterror();
 				return 0;
 			}
+		}
+
+		return 1;
+	}
+
+	/**
+	 * Initialize the customer reference feature without overwriting existing setup.
+	 *
+	 * When the LMDB constant does not exist yet, the former module setting is
+	 * reused if available. Otherwise the feature is enabled by default, matching
+	 * CapInvoiceRefFromRec 1.0.3 behavior.
+	 *
+	 * @param int $entity Entity id
+	 * @return int 1 if OK, 0 if KO
+	 */
+	private function initializeRecurringInvoiceCustomerRefConstant($entity)
+	{
+		require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+
+		$sql = "SELECT value FROM ".MAIN_DB_PREFIX."const";
+		$sql .= " WHERE name = 'LMDB_RECURRING_INVOICE_CUSTOMER_REF' AND entity = ".((int) $entity);
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return 0;
+		}
+		if ($this->db->num_rows($resql) > 0) {
+			return 1;
+		}
+
+		$defaultValue = 1;
+		$sql = "SELECT value FROM ".MAIN_DB_PREFIX."const";
+		$sql .= " WHERE name = 'CAPINVOICEREFFROMREC_ACTIVE' AND entity = ".((int) $entity);
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return 0;
+		}
+		$legacySetting = $this->db->fetch_object($resql);
+		if (is_object($legacySetting)) {
+			$defaultValue = !empty($legacySetting->value) ? 1 : 0;
+		}
+
+		$result = dolibarr_set_const(
+			$this->db,
+			'LMDB_RECURRING_INVOICE_CUSTOMER_REF',
+			(string) $defaultValue,
+			'chaine',
+			0,
+			'',
+			(int) $entity
+		);
+		if ($result <= 0) {
+			$this->error = $this->db->lasterror();
+			return 0;
 		}
 
 		return 1;
