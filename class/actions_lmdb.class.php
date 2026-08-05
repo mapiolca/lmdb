@@ -14,14 +14,14 @@
  */
 
 require_once DOL_DOCUMENT_ROOT.'/comm/mailing/class/mailing.class.php';
-require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 
 /**
  * LMDB hooks.
  */
 class ActionsLmdb
 {
-	const SCHEDULED_SEND_ATTRIBUTE = 'lmdb_scheduled_send_at';
+	const SCHEDULED_SEND_FIELD = 'lmdb_scheduled_send_at';
 
 	/** @var DoliDB */
 	public $db;
@@ -49,12 +49,7 @@ class ActionsLmdb
 	}
 
 	/**
-	 * Persist the scheduled send extrafield from the native mailing card.
-	 *
-	 * Dolibarr v20 displays mailing extrafields but its mailing card does not
-	 * include the generic update_extras action. This hook uses the native
-	 * ExtraFields parser and CommonObject persistence method to complete that
-	 * integration without changing the core page.
+	 * Persist the scheduled send date from the native mailing card.
 	 *
 	 * @param array<string,mixed> $parameters Hook parameters
 	 * @param object              $object     Hook object
@@ -67,7 +62,7 @@ class ActionsLmdb
 		global $conf, $langs, $user;
 		$langs->load('lmdb@lmdb');
 
-		if ($action !== 'update_extras' || GETPOST('attribute', 'aZ09') !== self::SCHEDULED_SEND_ATTRIBUTE) {
+		if ($action !== 'save_lmdb_mailing_schedule') {
 			return 0;
 		}
 		$requestMethod = empty($_SERVER['REQUEST_METHOD']) ? '' : (string) $_SERVER['REQUEST_METHOD'];
@@ -97,51 +92,32 @@ class ActionsLmdb
 			return 1;
 		}
 
-		$extrafields = new ExtraFields($this->db);
-		$labels = $extrafields->fetch_name_optionals_label($object->table_element);
-		if (!is_array($labels) || !isset($labels[self::SCHEDULED_SEND_ATTRIBUTE])) {
-			setEventMessages($langs->trans('LmdbScheduledMailingExtraFieldMissing'), null, 'errors');
-			$action = '';
+		$scheduledAtInput = GETPOSTDATE(self::SCHEDULED_SEND_FIELD, 'getpost', 'tzuserrel');
+		if ($scheduledAtInput === false) {
+			setEventMessages($langs->trans('LmdbScheduledMailingInvalidDate'), null, 'errors');
+			$action = 'edit_lmdb_mailing_schedule';
 			return 1;
 		}
-
-		if ($object->fetch_optionals() < 0) {
-			setEventMessages($object->error, $object->errors, 'errors');
-			$action = '';
-			return 1;
-		}
-		if (!empty($object->array_options['options_lmdb_scheduled_started_at'])) {
+		$scheduledAt = $scheduledAtInput === '' ? 0 : (int) $scheduledAtInput;
+		$result = $this->saveSchedule((int) $object->id, (int) $conf->entity, $scheduledAt, (int) $user->id);
+		if ($result === 0) {
 			setEventMessages($langs->trans('LmdbScheduledMailingDateLocked'), null, 'errors');
 			$action = '';
 			return 1;
 		}
-		$object->oldcopy = dol_clone($object, 2);
-		$result = $extrafields->setOptionalsFromPost(null, $object, self::SCHEDULED_SEND_ATTRIBUTE);
 		if ($result < 0) {
-			setEventMessages($extrafields->error, $object->errors, 'errors');
-			$action = 'edit_extras';
-			return 1;
-		}
-
-		$result = $object->updateExtraField(self::SCHEDULED_SEND_ATTRIBUTE, 'MAILING_MODIFY', $user);
-		if ($result <= 0) {
-			setEventMessages($object->error, $object->errors, 'errors');
-			$action = 'edit_extras';
+			setEventMessages($this->error, $this->errors, 'errors');
+			$action = 'edit_lmdb_mailing_schedule';
 			return 1;
 		}
 
 		setEventMessages($langs->trans('LmdbScheduledMailingDateSaved'), null, 'mesgs');
-		$action = '';
-		return 1;
+		header('Location: '.DOL_URL_ROOT.'/comm/mailing/card.php?id='.(int) $object->id);
+		exit;
 	}
 
 	/**
-	 * Keep the scheduling field in the native inline extrafield editor.
-	 *
-	 * The v20 mailing full-edit layout renders its extrafields outside the main
-	 * form. Hiding this one from that layout avoids presenting a control that
-	 * cannot be submitted, while the native inline editor remains available on
-	 * the campaign card. The edit icon is also removed after delivery starts.
+	 * Add the scheduling field to the native mailing card.
 	 *
 	 * @param array<string,mixed> $parameters Hook parameters
 	 * @param object              $object     Hook object
@@ -151,23 +127,151 @@ class ActionsLmdb
 	 */
 	public function formObjectOptions($parameters, &$object, &$action, $hookmanager)
 	{
-		global $extrafields;
+		global $conf, $form, $langs, $user;
 
-		if (!is_object($object) || !($object instanceof Mailing) || !is_object($extrafields)) {
+		$this->resprints = '';
+		if (!is_object($object) || !($object instanceof Mailing) || (int) $object->id <= 0 || (int) $object->entity !== (int) $conf->entity
+			|| (string) $object->messtype !== 'email') {
 			return 0;
 		}
-		if (!isset($extrafields->attributes['mailing']['list'][self::SCHEDULED_SEND_ATTRIBUTE])) {
-			return 0;
+
+		$langs->load('lmdb@lmdb');
+		$schedule = $this->fetchSchedule((int) $object->id, (int) $conf->entity);
+		if ($schedule === false) {
+			return -1;
+		}
+		if (!isset($form) || !is_object($form)) {
+			$form = new Form($this->db);
+		}
+		$scheduledAt = is_array($schedule) ? $schedule['scheduled_send_at'] : 0;
+		$startedAt = is_array($schedule) ? $schedule['scheduled_started_at'] : 0;
+		$canSchedule = (!empty($user->admin) || $user->hasRight('mailing', 'valider'))
+			&& (string) $object->messtype === 'email'
+			&& in_array((int) $object->status, array(Mailing::STATUS_DRAFT, Mailing::STATUS_VALIDATED), true)
+			&& $startedAt <= 0;
+
+		$label = $form->textwithpicto(
+			$langs->trans('LmdbScheduledMailingSendAt'),
+			$langs->trans('LmdbScheduledMailingSendAtHelp'),
+			1,
+			'help'
+		);
+		$html = '<tr class="oddeven"><td class="titlefield">'.$label.'</td><td>';
+
+		if ($action === 'edit_lmdb_mailing_schedule' && $canSchedule) {
+			$html .= '<form method="POST" action="'.DOL_URL_ROOT.'/comm/mailing/card.php">';
+			$html .= '<input type="hidden" name="token" value="'.newToken().'">';
+			$html .= '<input type="hidden" name="action" value="save_lmdb_mailing_schedule">';
+			$html .= '<input type="hidden" name="id" value="'.((int) $object->id).'">';
+			$html .= $form->selectDate($scheduledAt > 0 ? $scheduledAt : '', self::SCHEDULED_SEND_FIELD, 1, 1, 1, '', 1, 1);
+			$html .= ' <button class="button button-save" type="submit">'.$langs->trans('Save').'</button>';
+			$html .= ' <a class="button button-cancel" href="'.DOL_URL_ROOT.'/comm/mailing/card.php?id='.((int) $object->id).'">'.$langs->trans('Cancel').'</a>';
+			$html .= '</form>';
+		} else {
+			$html .= $scheduledAt > 0 ? dol_print_date($scheduledAt, 'dayhour', 'tzuserrel') : '<span class="opacitymedium">'.$langs->trans('NotDefined').'</span>';
+			if ($canSchedule) {
+				$editUrl = DOL_URL_ROOT.'/comm/mailing/card.php?id='.((int) $object->id).'&action=edit_lmdb_mailing_schedule&token='.newToken();
+				$html .= ' <a class="editfielda" href="'.$editUrl.'">'.img_edit($langs->trans('Edit')).'</a>';
+			}
 		}
 
-		if ($action === 'edit') {
-			$extrafields->attributes['mailing']['list'][self::SCHEDULED_SEND_ATTRIBUTE] = '5';
-		}
-		if (!in_array((int) $object->status, array(Mailing::STATUS_DRAFT, Mailing::STATUS_VALIDATED), true)
-			|| !empty($object->array_options['options_lmdb_scheduled_started_at'])) {
-			$extrafields->attributes['mailing']['alwayseditable'][self::SCHEDULED_SEND_ATTRIBUTE] = 0;
-		}
+		$html .= '</td></tr>';
+		$this->resprints = $html;
 
 		return 0;
+	}
+
+	/**
+	 * Read one mailing schedule in the current entity.
+	 *
+	 * @param int $mailingId Mailing id
+	 * @param int $entity    Entity id
+	 * @return array{scheduled_send_at:int,scheduled_started_at:int}|null|false
+	 */
+	private function fetchSchedule($mailingId, $entity)
+	{
+		global $langs;
+
+		$sql = "SELECT scheduled_send_at, scheduled_started_at";
+		$sql .= " FROM ".MAIN_DB_PREFIX."lmdb_mailing_schedule";
+		$sql .= " WHERE entity = ".((int) $entity);
+		$sql .= " AND fk_mailing = ".((int) $mailingId);
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			dol_syslog(__METHOD__.': '.$this->db->lasterror(), LOG_ERR);
+			$this->error = $langs->trans('LmdbScheduledMailingStorageError');
+			$this->errors[] = $this->error;
+			return false;
+		}
+		$obj = $this->db->fetch_object($resql);
+		if (!is_object($obj)) {
+			return null;
+		}
+
+		return array(
+			'scheduled_send_at' => empty($obj->scheduled_send_at) ? 0 : (int) $this->db->jdate($obj->scheduled_send_at),
+			'scheduled_started_at' => empty($obj->scheduled_started_at) ? 0 : (int) $this->db->jdate($obj->scheduled_started_at),
+		);
+	}
+
+	/**
+	 * Insert or update one mailing schedule without reopening a started send.
+	 *
+	 * @param int $mailingId  Mailing id
+	 * @param int $entity     Entity id
+	 * @param int $scheduledAt Scheduled timestamp, or 0 to clear
+	 * @param int $userId     User id
+	 * @return int 1 if saved, 0 if locked, -1 on SQL error
+	 */
+	private function saveSchedule($mailingId, $entity, $scheduledAt, $userId)
+	{
+		global $langs;
+
+		$this->db->begin();
+
+		$sql = "SELECT rowid, scheduled_started_at";
+		$sql .= " FROM ".MAIN_DB_PREFIX."lmdb_mailing_schedule";
+		$sql .= " WHERE entity = ".((int) $entity);
+		$sql .= " AND fk_mailing = ".((int) $mailingId);
+		$sql .= " FOR UPDATE";
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			dol_syslog(__METHOD__.': '.$this->db->lasterror(), LOG_ERR);
+			$this->error = $langs->trans('LmdbScheduledMailingStorageError');
+			$this->errors[] = $this->error;
+			$this->db->rollback();
+			return -1;
+		}
+
+		$obj = $this->db->fetch_object($resql);
+		if (is_object($obj) && !empty($obj->scheduled_started_at)) {
+			$this->db->rollback();
+			return 0;
+		}
+
+		$sqlDate = $scheduledAt > 0 ? "'".$this->db->idate($scheduledAt)."'" : 'NULL';
+		if (is_object($obj)) {
+			$sql = "UPDATE ".MAIN_DB_PREFIX."lmdb_mailing_schedule";
+			$sql .= " SET scheduled_send_at = ".$sqlDate;
+			$sql .= ", fk_user_modif = ".((int) $userId);
+			$sql .= " WHERE rowid = ".((int) $obj->rowid);
+			$sql .= " AND entity = ".((int) $entity);
+			$sql .= " AND scheduled_started_at IS NULL";
+		} else {
+			$sql = "INSERT INTO ".MAIN_DB_PREFIX."lmdb_mailing_schedule";
+			$sql .= " (entity, fk_mailing, scheduled_send_at, date_creation, fk_user_creat, fk_user_modif) VALUES (";
+			$sql .= ((int) $entity).", ".((int) $mailingId).", ".$sqlDate.", '".$this->db->idate(dol_now())."', ".((int) $userId).", ".((int) $userId).")";
+		}
+
+		if (!$this->db->query($sql)) {
+			dol_syslog(__METHOD__.': '.$this->db->lasterror(), LOG_ERR);
+			$this->error = $langs->trans('LmdbScheduledMailingStorageError');
+			$this->errors[] = $this->error;
+			$this->db->rollback();
+			return -1;
+		}
+
+		$this->db->commit();
+		return 1;
 	}
 }

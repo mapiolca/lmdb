@@ -2,14 +2,19 @@
 
 ## 1.2.0 - 2026-07-18
 
-- Ajout de l'extrafield date/heure `lmdb_scheduled_send_at` sur les emailings natifs Dolibarr.
-- Ajout du hook `mailingcard` pour enregistrer ce champ avec les mécanismes natifs ExtraFields sur Dolibarr v20+.
+- Ajout de la table normalisée `lmdb_mailing_schedule`, rattachée aux emailings natifs par `fk_mailing` et isolée par entité.
+- Ajout par le hook `mailingcard` du champ date/heure d'envoi programmé avec le datepicker natif Dolibarr.
+- Suppression de toute dépendance à `mailing_extrafields`, table absente du schéma Dolibarr 23.0.3.
+- Suppression de la programmation liée lors de la suppression native d'un emailing via le trigger core `MAILING_DELETE`.
 - Ajout d'une tâche native exécutée toutes les cinq minutes pour prendre en charge les campagnes validées arrivées à échéance.
-- Délégation de l'envoi au script core `scripts/emailings/mailing-send.php`, sans duplication de la logique d'envoi Dolibarr.
-- Propagation explicite de l'entité Multicompany au processus PHP CLI et utilisation de la signature du valideur.
+- Remplacement de l'exécution du script CLI par le mécanisme Web natif Dolibarr dans le processus du travail planifié, sur demande explicite afin de prendre en charge les hébergements désactivant `exec` et `proc_open`.
+- Utilisation directe de `CMailFile`, des substitutions, désabonnements, liens de suivi, pièces jointes et réglages SMTP natifs, en alignement avec le flux Web des versions Dolibarr 20 à 23.
+- Suppression de la dépendance à PHP CLI et à la constante `MAILING_LIMIT_SENDBYCLI` ; utilisation de `MAILING_LIMIT_SENDBYWEB` comme taille de lot native.
+- Utilisation de la signature du valideur et conservation du périmètre de l'entité courante.
 - Ajout d'un verrou MySQL/MariaDB par campagne pour empêcher les doubles exécutions concurrentes.
 - Ajout d'un marqueur interne permettant de reprendre uniquement les campagnes partielles ayant initialement intégré le flux LMDB à l'état validé.
-- Reprise des destinataires en erreur après un envoi partiel et classement automatique en **Envoyé complètement** lorsque tous les destinataires ont été traités.
+- Enchaînement des lots dans un même passage jusqu'au traitement de tous les nouveaux destinataires, avec une seule tentative par passage pour les destinataires déjà en erreur afin d'éviter une boucle infinie.
+- Reprise des destinataires en erreur au passage suivant et classement automatique en **Envoyé complètement** lorsque tous les destinataires ont été envoyés.
 - Exclusion définitive des campagnes déjà envoyées complètement et des campagnes sans date programmée.
 - Ajout des diagnostics, de la limite de campagnes par passage et des contrôles de compatibilité dans les réglages LMDB.
 - Conservation des réglages et de l'historique des travaux planifiés lors d'une désactivation/réactivation du module.

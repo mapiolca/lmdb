@@ -15,6 +15,7 @@
 
 require_once DOL_DOCUMENT_ROOT.'/core/triggers/dolibarrtriggers.class.php';
 require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
+require_once DOL_DOCUMENT_ROOT.'/comm/mailing/class/mailing.class.php';
 require_once dol_buildpath('/lmdb/class/lmdbinvoiceautosend.class.php', 0);
 require_once dol_buildpath('/lmdb/class/lmdbinvoicecustomerref.class.php', 0);
 
@@ -49,7 +50,25 @@ class InterfaceLmdbTriggers extends DolibarrTriggers
 	 */
 	public function runTrigger($action, $object, User $user, Translate $langs, Conf $conf)
 	{
-		if (!isModEnabled('lmdb') || !($object instanceof Facture)) {
+		if (!isModEnabled('lmdb')) {
+			return 0;
+		}
+
+		if ($action === 'MAILING_DELETE' && $object instanceof Mailing) {
+			$sql = "DELETE FROM ".MAIN_DB_PREFIX."lmdb_mailing_schedule";
+			$sql .= " WHERE entity = ".((int) $object->entity);
+			$sql .= " AND fk_mailing = ".((int) $object->id);
+			if (!$this->db->query($sql)) {
+				$this->error = $langs->trans('LmdbScheduledMailingStorageError');
+				$this->errors[] = $this->error;
+				dol_syslog(__METHOD__.': unable to delete schedule for mailing id='.(int) $object->id, LOG_ERR);
+				return -1;
+			}
+
+			return 0;
+		}
+
+		if (!($object instanceof Facture)) {
 			return 0;
 		}
 
