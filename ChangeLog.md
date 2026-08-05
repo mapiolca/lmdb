@@ -1,5 +1,10 @@
 # ChangeLog
 
+## Non publié
+
+- Correction des clés PDF non traduites (`Offered`, `PriceUHT`, `Qty`, `TotalHT`, `TotalTTC`) et du libellé technique de la devise EUR via des fallbacks issus des fichiers de langue LMDB.
+- Correction des noms de mois textuels dans la référence client automatique avec repli sur des traductions LMDB lorsque Dolibarr retourne une clé brute telle que `Month08`.
+
 ## 1.2.0 - 2026-07-18
 
 - Ajout de la table normalisée `lmdb_mailing_schedule`, rattachée aux emailings natifs par `fk_mailing` et isolée par entité.
