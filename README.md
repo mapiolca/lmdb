@@ -59,6 +59,8 @@ La référence accepte les substitutions Dolibarr natives et les variables de p�
 - `__INVOICE_PREVIOUS_MONTH_TEXT__`, `__INVOICE_MONTH_TEXT__`, `__INVOICE_NEXT_MONTH_TEXT__` ;
 - `__INVOICE_PREVIOUS_YEAR__`, `__INVOICE_YEAR__`, `__INVOICE_NEXT_YEAR__`.
 
+Les variables textuelles de mois utilisent les traductions natives `Month01` à `Month12`. Si l'objet de traduction Dolibarr renvoie encore une clé technique telle que `Month08`, LMDB applique sa traduction locale dans la langue de sortie (`Août` en français, `August` en anglais).
+
 Lorsqu'un modèle combine `__INVOICE_YEAR__` avec `__INVOICE_NEXT_MONTH__` ou `__INVOICE_NEXT_MONTH_TEXT__`, l'année suit automatiquement le mois calculé au changement d'année : une facture datée de décembre produit donc janvier de l'année suivante. La règle symétrique s'applique à `__INVOICE_PREVIOUS_MONTH__` et `__INVOICE_PREVIOUS_MONTH_TEXT__` pour une facture datée de janvier. Utilisé seul ou avec le mois courant, `__INVOICE_YEAR__` conserve l'année de la facture.
 
 LMDB déclare également ces variables dans le mécanisme natif `complete_substitutions_array()`. Elles sont ainsi disponibles dans les contenus de documents et notes PDF qui passent par les substitutions Dolibarr. Le modèle `lmdbsponge` charge explicitement les domaines `main`, `bills`, `products`, `dict`, `companies`, `compta`, `projects`, `other` et `lmdb@lmdb` avant le rendu ; la référence client déjà résolue et enregistrée lors de `BILL_CREATE` est donc présente lorsque Dolibarr recharge la facture pour générer le PDF.

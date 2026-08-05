@@ -199,12 +199,40 @@ class LmdbInvoiceCustomerRef
 			'__INVOICE_PREVIOUS_MONTH__' => dol_print_date($previousMonthDate, '%m', 'tzserver', $langs),
 			'__INVOICE_MONTH__' => dol_print_date($invoiceDate, '%m', 'tzserver', $langs),
 			'__INVOICE_NEXT_MONTH__' => dol_print_date($nextMonthDate, '%m', 'tzserver', $langs),
-			'__INVOICE_PREVIOUS_MONTH_TEXT__' => dol_print_date($previousMonthDate, '%B', 'tzserver', $langs),
-			'__INVOICE_MONTH_TEXT__' => dol_print_date($invoiceDate, '%B', 'tzserver', $langs),
-			'__INVOICE_NEXT_MONTH_TEXT__' => dol_print_date($nextMonthDate, '%B', 'tzserver', $langs),
+			'__INVOICE_PREVIOUS_MONTH_TEXT__' => self::getTranslatedMonthName($previousMonthDate, $langs),
+			'__INVOICE_MONTH_TEXT__' => self::getTranslatedMonthName($invoiceDate, $langs),
+			'__INVOICE_NEXT_MONTH_TEXT__' => self::getTranslatedMonthName($nextMonthDate, $langs),
 			'__INVOICE_PREVIOUS_YEAR__' => dol_print_date($previousYearDate, '%Y', 'tzserver', $langs),
 			'__INVOICE_YEAR__' => dol_print_date($invoiceDate, '%Y', 'tzserver', $langs),
 			'__INVOICE_NEXT_YEAR__' => dol_print_date($nextYearDate, '%Y', 'tzserver', $langs),
 		);
+	}
+
+	/**
+	 * Return a translated month name with an LMDB fallback.
+	 *
+	 * Dolibarr normally translates Month01 to Month12 from main.lang. The
+	 * dedicated LMDB key is used only when the native translation object still
+	 * returns the technical key, as observed during recurring invoice creation.
+	 *
+	 * @param int       $timestamp Month timestamp
+	 * @param Translate $langs     Output language
+	 * @return string Translated month name
+	 */
+	private static function getTranslatedMonthName($timestamp, Translate $langs)
+	{
+		$monthNumber = dol_print_date($timestamp, '%m', 'tzserver', $langs);
+		$nativeKey = 'Month'.$monthNumber;
+		$monthName = $langs->transnoentitiesnoconv($nativeKey);
+
+		if ($monthName === '' || $monthName === $nativeKey) {
+			$fallbackKey = 'Lmdb'.$nativeKey;
+			$fallbackName = $langs->transnoentitiesnoconv($fallbackKey);
+			if ($fallbackName !== '' && $fallbackName !== $fallbackKey) {
+				$monthName = $fallbackName;
+			}
+		}
+
+		return $monthName;
 	}
 }

@@ -22,43 +22,33 @@
  */
 
 /**
- * Return PDF translation fallbacks for one output language.
+ * Return the LMDB translation key used as fallback for each PDF core key.
  *
- * @param string $lang Language code
+ * Dedicated keys avoid hardcoded language values and still repair a core key
+ * that was previously loaded as its own untranslated name.
+ *
  * @return array<string,string>
  */
-function lmdbPdfGetTranslationFallbacks($lang)
+function lmdbPdfGetTranslationFallbackKeys()
 {
-	$lang = strtolower((string) $lang);
-
-	if (strpos($lang, 'fr') === 0) {
-		return array(
-			'DateFromTo' => 'Du %s au %s',
-			'DateFrom' => 'À partir du %s',
-			'DateUntil' => "Jusqu'au %s",
-			'RefCustomer' => 'Réf. client',
-			'Project' => 'Projet',
-			'DateDue' => "Date d'échéance",
-			'AmountInCurrency' => 'Montants exprimés en %s',
-			'TotalHTBeforeDiscount' => 'Total HT avant remise',
-			'TotalDiscount' => 'Remise totale',
-			'TotalHTShort' => 'Total HT',
-			'Designation' => 'Désignation',
-		);
-	}
-
 	return array(
-		'DateFromTo' => 'From %s to %s',
-		'DateFrom' => 'From %s',
-		'DateUntil' => 'Until %s',
-		'RefCustomer' => 'Customer ref.',
-		'Project' => 'Project',
-		'DateDue' => 'Due date',
-		'AmountInCurrency' => 'Amounts in %s',
-		'TotalHTBeforeDiscount' => 'Total before discount (excl. tax)',
-		'TotalDiscount' => 'Total discount',
-		'TotalHTShort' => 'Total excl. tax',
-		'Designation' => 'Description',
+		'DateFromTo' => 'LmdbPdfDateFromTo',
+		'DateFrom' => 'LmdbPdfDateFrom',
+		'DateUntil' => 'LmdbPdfDateUntil',
+		'RefCustomer' => 'LmdbPdfRefCustomer',
+		'Project' => 'LmdbPdfProject',
+		'DateDue' => 'LmdbPdfDateDue',
+		'AmountInCurrency' => 'LmdbPdfAmountInCurrency',
+		'CurrencyEUR' => 'LmdbPdfCurrencyEUR',
+		'PriceUHT' => 'LmdbPdfPriceUHT',
+		'Qty' => 'LmdbPdfQty',
+		'Offered' => 'LmdbPdfOffered',
+		'TotalHTBeforeDiscount' => 'LmdbPdfTotalHTBeforeDiscount',
+		'TotalDiscount' => 'LmdbPdfTotalDiscount',
+		'TotalHTShort' => 'LmdbPdfTotalHTShort',
+		'TotalHT' => 'LmdbPdfTotalHT',
+		'TotalTTC' => 'LmdbPdfTotalTTC',
+		'Designation' => 'LmdbPdfDesignation',
 	);
 }
 
@@ -90,25 +80,32 @@ function lmdbPdfLoadInvoiceTranslationDomains($outputlangs)
 /**
  * Inject LMDB PDF translation fallbacks into a Dolibarr Translate object.
  *
- * The model keeps user/core translations when available, except for the
- * historical unaccented French DateFrom value.
+ * The model keeps user/core translations when available. It replaces only a
+ * missing/raw key and the known technical values handled by the fallback map.
  *
  * @param Translate|null $outputlangs Output language object
  * @return void
  */
 function lmdbPdfApplyTranslationFallbacks($outputlangs)
 {
-	if (!is_object($outputlangs) || !property_exists($outputlangs, 'tab_translate')) {
+	if (!is_object($outputlangs)
+		|| !property_exists($outputlangs, 'tab_translate')
+		|| !method_exists($outputlangs, 'transnoentitiesnoconv')) {
 		return;
 	}
 
-	$lang = empty($outputlangs->defaultlang) ? 'en_US' : $outputlangs->defaultlang;
-	$fallbacks = lmdbPdfGetTranslationFallbacks($lang);
-
-	foreach ($fallbacks as $key => $value) {
+	foreach (lmdbPdfGetTranslationFallbackKeys() as $key => $fallbackKey) {
 		$current = isset($outputlangs->tab_translate[$key]) ? $outputlangs->tab_translate[$key] : '';
-		if ($current === '' || $current === $key || ($key === 'DateFrom' && $current === 'A partir du %s')) {
-			$outputlangs->tab_translate[$key] = $value;
+		$isUntranslated = $current === '' || $current === $key;
+		$isKnownTechnicalValue = ($key === 'DateFrom' && $current === 'A partir du %s')
+			|| ($key === 'CurrencyEUR' && $current === 'Euro Member Countries');
+		if (!$isUntranslated && !$isKnownTechnicalValue) {
+			continue;
+		}
+
+		$fallback = $outputlangs->transnoentitiesnoconv($fallbackKey);
+		if ($fallback !== '' && $fallback !== $fallbackKey) {
+			$outputlangs->tab_translate[$key] = $fallback;
 		}
 	}
 }
