@@ -16,6 +16,7 @@
 require_once DOL_DOCUMENT_ROOT.'/core/triggers/dolibarrtriggers.class.php';
 require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
 require_once dol_buildpath('/lmdb/class/lmdbinvoiceautosend.class.php', 0);
+require_once dol_buildpath('/lmdb/class/lmdbinvoicecustomerref.class.php', 0);
 
 /**
  * LMDB triggers.
@@ -48,17 +49,34 @@ class InterfaceLmdbTriggers extends DolibarrTriggers
 	 */
 	public function runTrigger($action, $object, User $user, Translate $langs, Conf $conf)
 	{
-		if (!isModEnabled('lmdb') || $action !== 'BILL_SENTBYMAIL' || !($object instanceof Facture)) {
+		if (!isModEnabled('lmdb') || !($object instanceof Facture)) {
 			return 0;
 		}
 
-		$origin = !empty($object->context['lmdb_auto_invoice_send']) ? LmdbInvoiceAutoSend::ORIGIN_AUTOMATIC : LmdbInvoiceAutoSend::ORIGIN_MANUAL;
-		$result = LmdbInvoiceAutoSend::markInvoiceSentFromTrigger($this->db, $object, $user, $origin);
-		if ($result < 0) {
-			$this->error = $langs->trans('LmdbAutoInvoiceSendLedgerError', $object->ref);
-			$this->errors[] = $this->error;
-			dol_syslog(__METHOD__.': unable to update ledger for invoice id='.(int) $object->id, LOG_ERR);
-			return -1;
+		if ($action === 'BILL_CREATE') {
+			if (!getDolGlobalInt('LMDB_RECURRING_INVOICE_CUSTOMER_REF') || isModEnabled('capinvoicereffromrec')) {
+				return 0;
+			}
+
+			$customerRef = new LmdbInvoiceCustomerRef($this->db);
+			$result = $customerRef->apply($object, $langs);
+			if ($result < 0) {
+				$this->error = $customerRef->error;
+				$this->errors = $customerRef->errors;
+				dol_syslog(__METHOD__.': unable to propagate customer reference for invoice id='.(int) $object->id, LOG_ERR);
+				return -1;
+			}
+		}
+
+		if ($action === 'BILL_SENTBYMAIL') {
+			$origin = !empty($object->context['lmdb_auto_invoice_send']) ? LmdbInvoiceAutoSend::ORIGIN_AUTOMATIC : LmdbInvoiceAutoSend::ORIGIN_MANUAL;
+			$result = LmdbInvoiceAutoSend::markInvoiceSentFromTrigger($this->db, $object, $user, $origin);
+			if ($result < 0) {
+				$this->error = $langs->trans('LmdbAutoInvoiceSendLedgerError', $object->ref);
+				$this->errors[] = $this->error;
+				dol_syslog(__METHOD__.': unable to update ledger for invoice id='.(int) $object->id, LOG_ERR);
+				return -1;
+			}
 		}
 
 		return 0;
