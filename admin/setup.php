@@ -149,6 +149,7 @@ print dol_get_fiche_head($head, 'settings', '', -1);
 print '<span class="opacitymedium">'.$langs->trans('LmdbSetupIntro').'</span>';
 print '<br><br>';
 
+print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbInvoicePdfModel').'</td></tr>';
 
@@ -200,9 +201,11 @@ if ($featureavailable && $modelregistered && $currentmodel != LMDB_INVOICE_PDF_M
 print '</td>';
 print '</tr>';
 print '</table>';
+print '</div>';
 
 print '<br>';
 
+print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbRecurringInvoiceCustomerRefTitle').'</td></tr>';
 
@@ -247,12 +250,14 @@ if (isModEnabled('capinvoicereffromrec')) {
 print '</td>';
 print '</tr>';
 print '</table>';
+print '</div>';
 
 print '<br>';
 
 print '<form method="POST" action="'.dol_escape_htmltag($pageurl).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="action" value="saveautosend">';
+print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbAutoInvoiceSendTitle').'</td></tr>';
 
@@ -291,6 +296,7 @@ print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendMaxPerRun').'
 print $form->selectarray('lmdb_auto_invoice_send_max_per_run', array(25 => '25', 50 => '50', 100 => '100', 250 => '250'), $maxperrun, 0, 0, 0, '', 0, 0, 0, '', 'minwidth100', 1);
 print '</td></tr>';
 print '</table>';
+print '</div>';
 print '<div class="center"><input type="submit" class="button button-save" value="'.dol_escape_htmltag($langs->trans('Save')).'"></div>';
 print '</form>';
 
@@ -299,6 +305,7 @@ print '<br>';
 print '<form method="POST" action="'.dol_escape_htmltag($pageurl).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="action" value="savescheduledmailing">';
+print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbScheduledMailingTitle').'</td></tr>';
 
@@ -339,6 +346,7 @@ print '<tr class="oddeven"><td>'.$langs->trans('LmdbScheduledMailingMaxPerRun').
 print $form->selectarray('lmdb_scheduled_mailing_max_per_run', array(1 => '1', 5 => '5', 10 => '10', 25 => '25'), $maxmailingsperrun, 0, 0, 0, '', 0, 0, 0, '', 'minwidth100', 1);
 print '</td></tr>';
 print '</table>';
+print '</div>';
 print '<div class="center"><input type="submit" class="button button-save" value="'.dol_escape_htmltag($langs->trans('Save')).'"></div>';
 print '</form>';
 

@@ -59,6 +59,7 @@ print load_fiche_titre($langs->trans('LmdbCompatibility'), lmdbGetBackToModuleLi
 $head = lmdbAdminPrepareHead();
 print dol_get_fiche_head($head, 'compatibility', '', -1);
 
+print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('Environment').'</td></tr>';
 print '<tr class="oddeven"><td class="titlefield">'.$langs->trans('DetectedPhpVersion').'</td><td>'.dol_escape_htmltag(PHP_VERSION).'</td></tr>';
@@ -66,9 +67,11 @@ print '<tr class="oddeven"><td>'.$langs->trans('DetectedDolibarrVersion').'</td>
 print '<tr class="oddeven"><td>'.$langs->trans('MinimumPhpVersion').'</td><td>8.0</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('MinimumDolibarrVersion').'</td><td>20.0</td></tr>';
 print '</table>';
+print '</div>';
 
 print '<br>';
 
+print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre">';
 print '<td>'.$langs->trans('Feature').'</td>';
@@ -111,6 +114,7 @@ foreach (LmdbCompatibility::getFeatures() as $feature) {
 }
 
 print '</table>';
+print '</div>';
 
 print dol_get_fiche_end();
 
