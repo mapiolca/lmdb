@@ -2,7 +2,7 @@
 
 ## 1.2.0 - 2026-07-18
 
-- Correction des clés PDF non traduites (`Offered`, `PriceUHT`, `Qty`, `TotalHT`, `TotalTTC`) et du libellé technique de la devise EUR via des fallbacks issus des fichiers de langue LMDB.
+- Correction des clés PDF non traduites (`Offered`, `PriceUHT`, `Qty`, `TotalHT`, `TotalTTC`) et du libellé technique de la devise EUR via des fallbacks issus des fichiers de langue LMDB, y compris lorsque la génération automatique appelle directement le modèle natif Sponge.
 - Correction des noms de mois textuels dans la référence client automatique avec repli sur des traductions LMDB lorsque Dolibarr retourne une clé brute telle que `Month08`.
 - Ajout de la table normalisée `lmdb_mailing_schedule`, rattachée aux emailings natifs par `fk_mailing` et isolée par entité.
 - Ajout par le hook `mailingcard` du champ date/heure d'envoi programmé avec le datepicker natif Dolibarr.

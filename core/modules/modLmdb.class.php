@@ -65,6 +65,7 @@ class modLmdb extends DolibarrModules
 			'js' => array(),
 			'hooks' => array(
 				'mailingcard',
+				'pdfgeneration',
 			),
 			'moduleforexternal' => 0,
 			'websitetemplates' => 0,
