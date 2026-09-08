@@ -2,7 +2,7 @@
 
 Module externe Dolibarr pour Les Métiers du Bâtiment.
 
-Version courante : **1.2.0**.
+Version courante : **1.2.1**.
 
 ## Compatibilité
 

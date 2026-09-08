@@ -47,7 +47,7 @@ class modLmdb extends DolibarrModules
 		$this->descriptionlong = 'LmdbModuleDescriptionLong';
 		$this->editor_name = 'Les Métiers du Bâtiment';
 		$this->editor_url = 'https://lesmetiersdubatiment.fr';
-		$this->version = '1.2.0';
+		$this->version = '1.2.1';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'lmdb@lmdb';
 

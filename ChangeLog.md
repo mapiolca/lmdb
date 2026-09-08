@@ -1,6 +1,6 @@
 # ChangeLog
 
-## Correctif à publier - 2026-09-08
+## 1.2.1 - 2026-09-08
 
 - Restauration complète des catalogues natifs pour les factures PDF et leurs références récurrentes lorsque le cron a vidé le dictionnaire de traductions.
 - Même récupération pour le modèle `lmdbsponge`, le hook du modèle natif Sponge et les substitutions, avec conservation des traductions personnalisées déjà disponibles.
