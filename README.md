@@ -123,6 +123,14 @@ Le modèle est enregistré comme modèle de document Dolibarr pour les factures,
 
 ## Configuration
 
+### Traductions pendant les travaux planifiés
+
+Le cron peut vider `tab_translate` tout en laissant les domaines marqués comme déjà chargés dans `Translate`. LMDB recharge les catalogues de facturation avec une nouvelle instance native, puis complète les traductions absentes ou brutes dans l’objet de langue utilisé par le document. Cette récupération conserve la langue, le jeu de caractères, les répertoires de traduction et les personnalisations déjà disponibles.
+
+Le modèle `lmdbsponge`, le hook `beforePDFCreation` et les substitutions de références utilisent cette même récupération. Si un nom de mois reste impossible à traduire, la référence n’est pas enregistrée. Une référence déjà stockée avec `Month09`, par exemple, nécessite une correction métier explicite avant régénération ; le correctif ne réécrit aucune facture historique.
+
+Le fichier natif de découverte du hook doit être livré sous son nom exact `class/actions_lmdb.class.php`. Une copie suffixée par ` 2` ne remplace pas ce fichier. Les contrôles automatisés et les limites de validation sont décrits dans [test/README.md](test/README.md).
+
 La page de configuration principale est :
 
 ```text

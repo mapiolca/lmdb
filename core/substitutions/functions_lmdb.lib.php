@@ -15,7 +15,7 @@
  */
 
 require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
-require_once dol_buildpath('/lmdb/class/lmdbinvoicecustomerref.class.php', 0);
+require_once __DIR__.'/../../class/lmdbinvoicecustomerref.class.php';
 
 /**
  * Add LMDB invoice-period substitutions to native Dolibarr substitutions.
@@ -31,11 +31,18 @@ require_once dol_buildpath('/lmdb/class/lmdbinvoicecustomerref.class.php', 0);
  */
 function lmdb_completesubstitutionarray(&$substitutionarray, $outputlangs, $object = null, $parameters = null)
 {
-	if (!is_array($substitutionarray) || !($object instanceof Facture) || !is_object($outputlangs)) {
+	if (!is_array($substitutionarray) || !($object instanceof Facture) || !($outputlangs instanceof Translate)) {
 		return;
 	}
 
-	$periodSubstitutions = LmdbInvoiceCustomerRef::getPeriodSubstitutions($object, $outputlangs);
+	try {
+		$periodSubstitutions = LmdbInvoiceCustomerRef::getPeriodSubstitutions($object, $outputlangs);
+	} catch (RuntimeException $exception) {
+		// The generic substitution hook must not abort unrelated PDF/email flows.
+		// Reference persistence performs its own strict check in apply().
+		dol_syslog(__FUNCTION__.': '.$exception->getMessage(), LOG_ERR);
+		return;
+	}
 	foreach ($periodSubstitutions as $key => $value) {
 		$substitutionarray[$key] = $value;
 	}

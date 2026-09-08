@@ -214,3 +214,4 @@ LmdbMonth09=September
 LmdbMonth10=October
 LmdbMonth11=November
 LmdbMonth12=December
+LmdbInvoiceTranslationUnavailable=Unable to translate the invoice month. The customer reference was not saved.

@@ -1,5 +1,12 @@
 # ChangeLog
 
+## Correctif à publier - 2026-09-08
+
+- Restauration complète des catalogues natifs pour les factures PDF et leurs références récurrentes lorsque le cron a vidé le dictionnaire de traductions.
+- Même récupération pour le modèle `lmdbsponge`, le hook du modèle natif Sponge et les substitutions, avec conservation des traductions personnalisées déjà disponibles.
+- Refus d’enregistrer une référence contenant un mois technique non résolu ; les références historiques ne sont pas réécrites automatiquement.
+- Contrôles français/anglais avec les fichiers natifs Dolibarr 20.0.0 et 23.0.4, documentés dans `test/README.md` ; aucun changement SQL ou de réglage.
+
 ## 1.2.0 - 2026-07-18
 
 - Ajout du défilement horizontal natif Dolibarr sur tous les tableaux des réglages LMDB lorsque leur contenu dépasse la largeur disponible.

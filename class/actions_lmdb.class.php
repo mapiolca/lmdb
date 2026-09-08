@@ -71,12 +71,13 @@ class ActionsLmdb
 		$outputlangs = isset($parameters['outputlangs']) && is_object($parameters['outputlangs'])
 			? $parameters['outputlangs']
 			: null;
-		if (!is_object($outputlangs)) {
+		if (!($outputlangs instanceof Translate)) {
 			return 0;
 		}
 
-		require_once dol_buildpath('/lmdb/lib/lmdb_pdf.lib.php', 0);
-		lmdbPdfLoadInvoiceTranslationDomains($outputlangs);
+		require_once __DIR__.'/../lib/lmdb_translation.lib.php';
+		require_once __DIR__.'/../lib/lmdb_pdf.lib.php';
+		lmdbLoadInvoiceTranslations($outputlangs);
 		lmdbPdfApplyTranslationFallbacks($outputlangs);
 
 		return 0;

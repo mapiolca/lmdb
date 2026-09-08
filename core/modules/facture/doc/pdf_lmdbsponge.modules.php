@@ -21,8 +21,8 @@
  * \brief      LMDB invoice PDF model based on Dolibarr sponge model.
  */
 
-$lmdbPdfLib = function_exists('dol_buildpath') ? dol_buildpath('/lmdb/lib/lmdb_pdf.lib.php', 0) : DOL_DOCUMENT_ROOT.'/custom/lmdb/lib/lmdb_pdf.lib.php';
-require_once $lmdbPdfLib;
+require_once __DIR__.'/../../../../lib/lmdb_pdf.lib.php';
+require_once __DIR__.'/../../../../lib/lmdb_translation.lib.php';
 
 $coreSpongeFile = DOL_DOCUMENT_ROOT.'/core/modules/facture/doc/pdf_sponge.modules.php';
 if (file_exists($coreSpongeFile)) {
@@ -67,11 +67,11 @@ if (class_exists('pdf_sponge')) {
 		{
 			global $langs;
 
-			if (!is_object($outputlangs)) {
+			if (!($outputlangs instanceof Translate)) {
 				$outputlangs = $langs;
 			}
 
-			lmdbPdfLoadInvoiceTranslationDomains($outputlangs);
+			lmdbLoadInvoiceTranslations($outputlangs);
 			lmdbPdfApplyTranslationFallbacks($outputlangs);
 			lmdbPdfEnsureRecurringServiceDates($object);
 
