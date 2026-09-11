@@ -1,8 +1,16 @@
 # ChangeLog
 
+## 1.2.1 - 2026-09-08
+
+- Restauration complète des catalogues natifs pour les factures PDF et leurs références récurrentes lorsque le cron a vidé le dictionnaire de traductions.
+- Même récupération pour le modèle `lmdbsponge`, le hook du modèle natif Sponge et les substitutions, avec conservation des traductions personnalisées déjà disponibles.
+- Refus d’enregistrer une référence contenant un mois technique non résolu ; les références historiques ne sont pas réécrites automatiquement.
+- Contrôles français/anglais avec les fichiers natifs Dolibarr 20.0.0 et 23.0.4, documentés dans `test/README.md` ; aucun changement SQL ou de réglage.
+
 ## 1.2.0 - 2026-07-18
 
-- Correction des clés PDF non traduites (`Offered`, `PriceUHT`, `Qty`, `TotalHT`, `TotalTTC`) et du libellé technique de la devise EUR via des fallbacks issus des fichiers de langue LMDB.
+- Ajout du défilement horizontal natif Dolibarr sur tous les tableaux des réglages LMDB lorsque leur contenu dépasse la largeur disponible.
+- Correction des clés PDF non traduites (`Offered`, `PriceUHT`, `Qty`, `TotalHT`, `TotalTTC`) et du libellé technique de la devise EUR via des fallbacks issus des fichiers de langue LMDB, y compris lorsque la génération automatique appelle directement le modèle natif Sponge.
 - Correction des noms de mois textuels dans la référence client automatique avec repli sur des traductions LMDB lorsque Dolibarr retourne une clé brute telle que `Month08`.
 - Ajout de la table normalisée `lmdb_mailing_schedule`, rattachée aux emailings natifs par `fk_mailing` et isolée par entité.
 - Ajout par le hook `mailingcard` du champ date/heure d'envoi programmé avec le datepicker natif Dolibarr.

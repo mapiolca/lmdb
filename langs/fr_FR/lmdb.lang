@@ -214,3 +214,4 @@ LmdbMonth09=Septembre
 LmdbMonth10=Octobre
 LmdbMonth11=Novembre
 LmdbMonth12=Décembre
+LmdbInvoiceTranslationUnavailable=Impossible de traduire le mois de la facture. La référence client n’a pas été enregistrée.

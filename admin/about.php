@@ -61,6 +61,7 @@ print load_fiche_titre($langs->trans('LmdbAbout'), lmdbGetBackToModuleListLink()
 $head = lmdbAdminPrepareHead();
 print dol_get_fiche_head($head, 'about', '', -1);
 
+print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('ModuleInformation').'</td></tr>';
 print '<tr class="oddeven"><td class="titlefield">'.$langs->trans('ModuleName').'</td><td>'.$langs->trans('LmdbModuleName').'</td></tr>';
@@ -73,6 +74,7 @@ print '<tr class="oddeven"><td>'.$langs->trans('MainFeatures').'</td><td>'.$lang
 print '<tr class="oddeven"><td>'.$langs->trans('UsefulLinks').'</td><td><a href="https://lesmetiersdubatiment.fr" target="_blank" rel="noopener noreferrer">lesmetiersdubatiment.fr</a></td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('License').'</td><td>GPL-3.0-or-later</td></tr>';
 print '</table>';
+print '</div>';
 
 print dol_get_fiche_end();
 

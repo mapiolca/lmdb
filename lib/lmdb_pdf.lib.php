@@ -53,31 +53,6 @@ function lmdbPdfGetTranslationFallbackKeys()
 }
 
 /**
- * Load language domains used by the invoice PDF model.
- *
- * @param Translate|null $outputlangs Output language object
- * @return void
- */
-function lmdbPdfLoadInvoiceTranslationDomains($outputlangs)
-{
-	if (!is_object($outputlangs) || !method_exists($outputlangs, 'loadLangs')) {
-		return;
-	}
-
-	$outputlangs->loadLangs(array(
-		'main',
-		'bills',
-		'products',
-		'dict',
-		'companies',
-		'compta',
-		'projects',
-		'other',
-		'lmdb@lmdb',
-	));
-}
-
-/**
  * Inject LMDB PDF translation fallbacks into a Dolibarr Translate object.
  *
  * The model keeps user/core translations when available. It replaces only a

@@ -16,6 +16,7 @@
 
 require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
 require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture-rec.class.php';
+require_once __DIR__.'/../lib/lmdb_translation.lib.php';
 
 /**
  * Propagate and resolve the customer reference defined on a recurring invoice.
@@ -91,7 +92,14 @@ class LmdbInvoiceCustomerRef
 			return 0;
 		}
 
-		$customerReference = self::resolve($template, $invoice, $langs);
+		try {
+			$customerReference = self::resolve($template, $invoice, $langs);
+		} catch (RuntimeException $exception) {
+			$this->error = $langs->trans('LmdbInvoiceTranslationUnavailable');
+			$this->errors[] = $this->error;
+			dol_syslog(__METHOD__.': '.$exception->getMessage(), LOG_ERR);
+			return -1;
+		}
 		if (dol_strlen($customerReference) > 255) {
 			$this->error = $langs->trans('LmdbRecurringInvoiceCustomerRefTooLong', $invoice->ref);
 			$this->errors[] = $this->error;
@@ -119,10 +127,11 @@ class LmdbInvoiceCustomerRef
 	 * @param Facture   $invoice  Generated invoice
 	 * @param Translate $langs    Translation handler
 	 * @return string Resolved customer reference
+	 * @throws RuntimeException If a month cannot be translated
 	 */
 	public static function resolve($template, Facture $invoice, Translate $langs)
 	{
-		$langs->loadLangs(array('main', 'bills', 'companies', 'other', 'lmdb@lmdb'));
+		lmdbLoadInvoiceTranslations($langs);
 
 		/** @var array<string,mixed> $substitutions */
 		$substitutions = getCommonSubstitutionArray($langs, 0, null, $invoice);
@@ -184,10 +193,11 @@ class LmdbInvoiceCustomerRef
 	 * @param Facture   $invoice Invoice object
 	 * @param Translate $langs   Output language
 	 * @return array<string,string> Period substitutions
+	 * @throws RuntimeException If a month cannot be translated
 	 */
 	public static function getPeriodSubstitutions(Facture $invoice, Translate $langs)
 	{
-		$langs->loadLangs(array('main', 'bills', 'lmdb@lmdb'));
+		lmdbLoadInvoiceTranslations($langs);
 
 		$invoiceDate = !empty($invoice->date) ? (int) $invoice->date : dol_now();
 		$previousMonthDate = dol_time_plus_duree($invoiceDate, -1, 'm');
@@ -218,6 +228,7 @@ class LmdbInvoiceCustomerRef
 	 * @param int       $timestamp Month timestamp
 	 * @param Translate $langs     Output language
 	 * @return string Translated month name
+	 * @throws RuntimeException If both native and module translations are missing
 	 */
 	private static function getTranslatedMonthName($timestamp, Translate $langs)
 	{
@@ -230,6 +241,8 @@ class LmdbInvoiceCustomerRef
 			$fallbackName = $langs->transnoentitiesnoconv($fallbackKey);
 			if ($fallbackName !== '' && $fallbackName !== $fallbackKey) {
 				$monthName = $fallbackName;
+			} else {
+				throw new RuntimeException('Invoice month translation unavailable: '.$nativeKey);
 			}
 		}
 

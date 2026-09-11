@@ -49,6 +49,41 @@ class ActionsLmdb
 	}
 
 	/**
+	 * Repair invoice PDF translations before the native model renders content.
+	 *
+	 * Recurring invoice generation can call the core sponge model directly from
+	 * the model stored on the recurring invoice. The pdfgeneration hook keeps
+	 * automatic and manual rendering aligned without overriding that native
+	 * model choice.
+	 *
+	 * @param array<string,mixed> $parameters  Hook parameters
+	 * @param object              $object      Generated business object
+	 * @param string              $action      Current action
+	 * @param HookManager         $hookmanager Hook manager
+	 * @return int 0 to continue native PDF generation
+	 */
+	public function beforePDFCreation($parameters, &$object, &$action, $hookmanager)
+	{
+		if (!is_object($object) || !isset($object->element) || (string) $object->element !== 'facture') {
+			return 0;
+		}
+
+		$outputlangs = isset($parameters['outputlangs']) && is_object($parameters['outputlangs'])
+			? $parameters['outputlangs']
+			: null;
+		if (!($outputlangs instanceof Translate)) {
+			return 0;
+		}
+
+		require_once __DIR__.'/../lib/lmdb_translation.lib.php';
+		require_once __DIR__.'/../lib/lmdb_pdf.lib.php';
+		lmdbLoadInvoiceTranslations($outputlangs);
+		lmdbPdfApplyTranslationFallbacks($outputlangs);
+
+		return 0;
+	}
+
+	/**
 	 * Persist the scheduled send date from the native mailing card.
 	 *
 	 * @param array<string,mixed> $parameters Hook parameters

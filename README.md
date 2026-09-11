@@ -2,7 +2,7 @@
 
 Module externe Dolibarr pour Les Métiers du Bâtiment.
 
-Version courante : **1.2.0**.
+Version courante : **1.2.1**.
 
 ## Compatibilité
 
@@ -63,7 +63,7 @@ Les variables textuelles de mois utilisent les traductions natives `Month01` à 
 
 Lorsqu'un modèle combine `__INVOICE_YEAR__` avec `__INVOICE_NEXT_MONTH__` ou `__INVOICE_NEXT_MONTH_TEXT__`, l'année suit automatiquement le mois calculé au changement d'année : une facture datée de décembre produit donc janvier de l'année suivante. La règle symétrique s'applique à `__INVOICE_PREVIOUS_MONTH__` et `__INVOICE_PREVIOUS_MONTH_TEXT__` pour une facture datée de janvier. Utilisé seul ou avec le mois courant, `__INVOICE_YEAR__` conserve l'année de la facture.
 
-LMDB déclare également ces variables dans le mécanisme natif `complete_substitutions_array()`. Elles sont ainsi disponibles dans les contenus de documents et notes PDF qui passent par les substitutions Dolibarr. Le modèle `lmdbsponge` charge explicitement les domaines `main`, `bills`, `products`, `dict`, `companies`, `compta`, `projects`, `other` et `lmdb@lmdb` avant le rendu ; la référence client déjà résolue et enregistrée lors de `BILL_CREATE` est donc présente lorsque Dolibarr recharge la facture pour générer le PDF.
+LMDB déclare également ces variables dans le mécanisme natif `complete_substitutions_array()`. Elles sont ainsi disponibles dans les contenus de documents et notes PDF qui passent par les substitutions Dolibarr. Le modèle `lmdbsponge` charge explicitement les domaines `main`, `bills`, `products`, `dict`, `companies`, `compta`, `projects`, `other` et `lmdb@lmdb` avant le rendu ; la référence client déjà résolue et enregistrée lors de `BILL_CREATE` est donc présente lorsque Dolibarr recharge la facture pour générer le PDF. Le hook natif `pdfgeneration` applique les mêmes fallbacks aux factures générées directement avec Sponge, notamment depuis les modèles de factures récurrentes.
 
 La fonction peut être activée ou désactivée par entité depuis `admin/setup.php`. Tant que l'ancien module `capinvoicereffromrec` est actif, LMDB suspend sa propre propagation afin d'éviter un double traitement.
 
@@ -122,6 +122,14 @@ Corrections apportées :
 Le modèle est enregistré comme modèle de document Dolibarr pour les factures, mais il n'est pas imposé comme modèle par défaut lors de l'activation du module.
 
 ## Configuration
+
+### Traductions pendant les travaux planifiés
+
+Le cron peut vider `tab_translate` tout en laissant les domaines marqués comme déjà chargés dans `Translate`. LMDB recharge les catalogues de facturation avec une nouvelle instance native, puis complète les traductions absentes ou brutes dans l’objet de langue utilisé par le document. Cette récupération conserve la langue, le jeu de caractères, les répertoires de traduction et les personnalisations déjà disponibles.
+
+Le modèle `lmdbsponge`, le hook `beforePDFCreation` et les substitutions de références utilisent cette même récupération. Si un nom de mois reste impossible à traduire, la référence n’est pas enregistrée. Une référence déjà stockée avec `Month09`, par exemple, nécessite une correction métier explicite avant régénération ; le correctif ne réécrit aucune facture historique.
+
+Le fichier natif de découverte du hook doit être livré sous son nom exact `class/actions_lmdb.class.php`. Une copie suffixée par ` 2` ne remplace pas ce fichier. Les contrôles automatisés et les limites de validation sont décrits dans [test/README.md](test/README.md).
 
 La page de configuration principale est :
 
