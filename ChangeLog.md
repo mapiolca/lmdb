@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 1.2.2 - 2026-09-11
+
+- Désactivation de l’envoi automatique LMDB des factures récurrentes dès Dolibarr v24, préversions comprises, au profit du mécanisme natif ; maintien du traitement LMDB en v20–v23.
+- Protection des anciennes tâches encore actives et du registre d’envoi, masquage des réglages indisponibles et indication de la disponibilité dans l’onglet Compatibilité.
+- À la réactivation par entité, masquage des extrafields historiques et actualisation de la condition du cron sans suppression de données ni réinitialisation des paramètres ou historiques.
+- Configuration manuelle de l’envoi et du modèle d’email sur les factures récurrentes natives en v24+ ; aucune modification de la programmation des campagnes d’emailing.
+
 ## 1.2.1 - 2026-09-08
 
 - Restauration complète des catalogues natifs pour les factures PDF et leurs références récurrentes lorsque le cron a vidé le dictionnaire de traductions.

@@ -22,6 +22,7 @@
  */
 
 include_once DOL_DOCUMENT_ROOT.'/core/modules/DolibarrModules.class.php';
+require_once __DIR__.'/../../class/lmdbcompatibility.class.php';
 
 /**
  * Module descriptor.
@@ -47,7 +48,7 @@ class modLmdb extends DolibarrModules
 		$this->descriptionlong = 'LmdbModuleDescriptionLong';
 		$this->editor_name = 'Les Métiers du Bâtiment';
 		$this->editor_url = 'https://lesmetiersdubatiment.fr';
-		$this->version = '1.2.1';
+		$this->version = '1.2.2';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'lmdb@lmdb';
 
@@ -120,6 +121,9 @@ class modLmdb extends DolibarrModules
 			),
 		);
 		$this->rights = array();
+		if (!LmdbCompatibility::isRecurringInvoiceAutoSendSupported()) {
+			unset($this->cronjobs[0]);
+		}
 		$this->menu = array();
 
 		$r = 0;
@@ -159,7 +163,7 @@ class modLmdb extends DolibarrModules
 			return 0;
 		}
 
-		if ($this->initializeInvoiceAutoSendConstants((int) $conf->entity) <= 0) {
+		if (LmdbCompatibility::isRecurringInvoiceAutoSendSupported() && $this->initializeInvoiceAutoSendConstants((int) $conf->entity) <= 0) {
 			return 0;
 		}
 		if ($this->initializeScheduledMailingConstants((int) $conf->entity) <= 0) {
@@ -234,6 +238,9 @@ class modLmdb extends DolibarrModules
 			),
 		);
 		$entity = (string) ((int) $conf->entity);
+		$autoSendSupported = LmdbCompatibility::isRecurringInvoiceAutoSendSupported();
+		// Only core-approved expressions are stored for dol_eval(). Re-evaluated on activation.
+		$enabled = 'isModEnabled("lmdb") && '.($autoSendSupported ? '1' : '0');
 		/** @var array<int,array{0:string,1:string,2:string,3:int,4:string,5:string,6:int,7:array<string,mixed>|string,8:int,9:string,10:string}> $definitions */
 		$definitions = array(
 			array('lmdb_envoi_auto', 'LmdbAutoInvoiceSend', 'boolean', 3, '', 'facture', 0, '', 0, 'LmdbAutoInvoiceSendHelp', '0'),
@@ -245,6 +252,9 @@ class modLmdb extends DolibarrModules
 		foreach ($definitions as $definition) {
 			$extrafields = new ExtraFields($this->db);
 			$existing = $extrafields->fetch_name_optionals_label($definition[5], true, $definition[0]);
+			if (!$autoSendSupported && !isset($existing[$definition[0]])) {
+				continue;
+			}
 			if (isset($existing[$definition[0]])) {
 				$result = $extrafields->updateExtraField(
 					$definition[0],
@@ -264,7 +274,7 @@ class modLmdb extends DolibarrModules
 					'',
 					$entity,
 					'lmdb@lmdb',
-					'isModEnabled("lmdb")',
+					$enabled,
 					0,
 					0,
 					array()
@@ -288,7 +298,7 @@ class modLmdb extends DolibarrModules
 					'',
 					$entity,
 					'lmdb@lmdb',
-					'isModEnabled("lmdb")',
+					$enabled,
 					0,
 					0,
 					array()

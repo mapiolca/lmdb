@@ -17,6 +17,7 @@ require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formmail.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/CMailFile.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
+require_once __DIR__.'/lmdbcompatibility.class.php';
 
 /**
  * Invoice object with the transient mail properties used by Dolibarr triggers.
@@ -105,6 +106,12 @@ class LmdbInvoiceAutoSend
 		$this->errors = array();
 
 		$langs->loadLangs(array('bills', 'errors', 'mails', 'lmdb@lmdb'));
+
+		// Old cron rows can still be active after upgrading Dolibarr.
+		if (!LmdbCompatibility::isRecurringInvoiceAutoSendSupported()) {
+			$this->output = $langs->trans('LmdbRecurringInvoiceAutoSendUnavailable');
+			return 0;
+		}
 
 		if (!isModEnabled('lmdb') || !isModEnabled('invoice')) {
 			$this->error = $langs->trans('LmdbAutoInvoiceSendModulesUnavailable');
@@ -255,8 +262,9 @@ class LmdbInvoiceAutoSend
 	 * Add the module language suffix to the native cron row.
 	 *
 	 * Dolibarr loads the language file declared after the label separator when
-	 * rendering Scheduled Jobs. Only label and note are updated so the existing
-	 * schedule, status and execution history remain untouched.
+	 * rendering Scheduled Jobs. Refresh the version gate as well, preserving
+	 * the schedule, status and execution history. The run() guard is authoritative
+	 * between a Dolibarr upgrade and the next module activation.
 	 *
 	 * @param DoliDB $db     Database handler
 	 * @param int    $entity Entity id
@@ -267,6 +275,8 @@ class LmdbInvoiceAutoSend
 		$sql = "UPDATE ".MAIN_DB_PREFIX."cronjob";
 		$sql .= " SET label = 'LmdbAutoInvoiceSendCronLabel:lmdb@lmdb'";
 		$sql .= ", note = 'LmdbAutoInvoiceSendCronComment'";
+		// Persist a literal: restricted dol_eval() does not allow version_compare().
+		$sql .= ", test = 'isModEnabled(\"lmdb\") && isModEnabled(\"invoice\") && ".(LmdbCompatibility::isRecurringInvoiceAutoSendSupported() ? '1' : '0')."'";
 		$sql .= " WHERE entity = ".((int) $entity);
 		$sql .= " AND module_name = 'lmdb'";
 		$sql .= " AND classesname = '/lmdb/class/lmdbinvoiceautosend.class.php'";
@@ -312,6 +322,10 @@ class LmdbInvoiceAutoSend
 	 */
 	public static function markInvoiceSentFromTrigger($db, $invoice, $user, $origin = self::ORIGIN_MANUAL)
 	{
+		if (!LmdbCompatibility::isRecurringInvoiceAutoSendSupported()) {
+			return 0;
+		}
+
 		$invoiceId = (int) $invoice->id;
 		$entity = !empty($invoice->entity) ? (int) $invoice->entity : 0;
 		if ($invoiceId <= 0 || $entity <= 0) {

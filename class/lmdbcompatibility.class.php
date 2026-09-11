@@ -40,6 +40,19 @@
 class LmdbCompatibility
 {
 	/**
+	 * LMDB recurring invoice delivery is replaced by the core from v24,
+	 * including v24 prereleases. This gate also protects previously saved jobs.
+	 *
+	 * @return bool
+	 */
+	public static function isRecurringInvoiceAutoSendSupported()
+	{
+		return self::isDolibarrVersionAtLeast('20.0.0')
+			&& !self::isDolibarrVersionAtLeast('24.0.0-alpha')
+			&& self::isPhpVersionAtLeast('8.0.0');
+	}
+
+	/**
 	 * Check Dolibarr version.
 	 *
 	 * @param string $version Minimal version
@@ -136,6 +149,9 @@ class LmdbCompatibility
 		if (!self::isDolibarrVersionAtLeast('20.0.0')) {
 			$autoSendReasons[] = 'RequiresDolibarr20';
 		}
+		if (self::isDolibarrVersionAtLeast('24.0.0-alpha')) {
+			$autoSendReasons[] = 'LmdbRecurringInvoiceAutoSendNative';
+		}
 		if (!isModEnabled('invoice')) {
 			$autoSendReasons[] = 'RequiresInvoiceModule';
 		}
@@ -151,8 +167,8 @@ class LmdbCompatibility
 			'core_available_from' => '20.0.0',
 			'module_available_from' => '20.0.0',
 			'min_php' => '8.0.0',
-			'compatibility_check' => "DOL_VERSION >= 20.0.0; PHP_VERSION >= 8.0.0; isModEnabled('invoice'); isModEnabled('cron')",
-			'available' => empty($autoSendReasons),
+			'compatibility_check' => "version_compare(DOL_VERSION, '20.0.0', '>=') && version_compare(DOL_VERSION, '24.0.0-alpha', '<'); PHP_VERSION >= 8.0.0; isModEnabled('invoice'); isModEnabled('cron')",
+			'available' => self::isRecurringInvoiceAutoSendSupported() && empty($autoSendReasons),
 			'reasons' => $autoSendReasons,
 		);
 
