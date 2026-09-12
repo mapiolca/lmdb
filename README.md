@@ -2,7 +2,7 @@
 
 Module externe Dolibarr pour Les Métiers du Bâtiment.
 
-Version courante : **1.2.1**.
+Version courante : **1.2.2**.
 
 ## Compatibilité
 
@@ -76,7 +76,13 @@ La fonction peut être activée ou désactivée par entité depuis `admin/setup.
 
 ### Envoi automatique des factures récurrentes
 
-LMDB peut envoyer automatiquement une facture client lorsqu'elle est générée depuis une facture récurrente configurée.
+Sous **Dolibarr v20 à v23**, LMDB peut envoyer automatiquement une facture client lorsqu'elle est générée depuis une facture récurrente configurée.
+
+À partir de **Dolibarr v24** (préversions comprises), ce traitement LMDB est désactivé au profit de l’envoi natif. Le contrôle serveur s’applique aussi aux anciennes tâches LMDB encore actives : aucun envoi ni écriture dans le registre LMDB n’est effectué. La programmation des campagnes d’emailing reste disponible.
+
+Après mise à jour, réactiver LMDB dans chaque entité concernée pour masquer les anciens extrafields d’envoi et actualiser la condition de visibilité du cron existant. Les valeurs des extrafields, constantes, états, fréquences et historiques des tâches sont conservés ; aucun nouveau cron d’envoi de factures ni extrafield d’envoi absent n’est créé en v24+. L’onglet Compatibilité explique cette indisponibilité et les réglages LMDB ne sont plus modifiables.
+
+Configurer ensuite, sur chaque facture récurrente native, le statut **Validé (à payer) et envoi par email** (`auto_validate = 2`) et le modèle d’email (`fk_email_template`). Les anciennes options LMDB ne sont pas transférées automatiquement : vérifier les destinataires, modèles et prochains envois lors de ce basculement. Aucun email n’est déclenché par la mise à jour du module.
 
 La facture récurrente porte deux extrafields natifs :
 

@@ -92,7 +92,7 @@ if ($action == 'registermodel') {
 }
 
 if ($action == 'saveautosend') {
-	if ($requestmethod != 'POST') {
+	if ($requestmethod != 'POST' || !LmdbCompatibility::isFeatureAvailable('recurring_invoice_auto_send')) {
 		accessforbidden();
 	}
 	$maxperrun = GETPOSTINT('lmdb_auto_invoice_send_max_per_run');
@@ -133,9 +133,7 @@ $form = new Form($db);
 $currentmodel = getDolGlobalString('FACTURE_ADDON_PDF');
 $modelregistered = lmdbIsInvoiceDocumentModelRegistered($db, (int) $conf->entity);
 $featureavailable = LmdbCompatibility::isFeatureAvailable('invoice_pdf_lmdbsponge');
-$autosenddiagnostics = LmdbInvoiceAutoSend::getDiagnostics($db, (int) $conf->entity);
-$maxperrun = getDolGlobalInt('LMDB_AUTO_INVOICE_SEND_MAX_PER_RUN', 100);
-$minimuminvoiceid = getDolGlobalInt('LMDB_AUTO_INVOICE_SEND_MIN_ID');
+$autosendavailable = LmdbCompatibility::isFeatureAvailable('recurring_invoice_auto_send');
 $scheduledmailingdiagnostics = LmdbMailingAutoSend::getDiagnostics($db, (int) $conf->entity);
 $maxmailingsperrun = getDolGlobalInt('LMDB_SCHEDULED_MAILING_MAX_PER_RUN', 10);
 
@@ -254,51 +252,60 @@ print '</div>';
 
 print '<br>';
 
-print '<form method="POST" action="'.dol_escape_htmltag($pageurl).'">';
-print '<input type="hidden" name="token" value="'.newToken().'">';
-print '<input type="hidden" name="action" value="saveautosend">';
-print '<div class="div-table-responsive-no-min">';
-print '<table class="noborder centpercent">';
-print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbAutoInvoiceSendTitle').'</td></tr>';
+if ($autosendavailable) {
+	$autosenddiagnostics = LmdbInvoiceAutoSend::getDiagnostics($db, (int) $conf->entity);
+	$maxperrun = getDolGlobalInt('LMDB_AUTO_INVOICE_SEND_MAX_PER_RUN', 100);
+	$minimuminvoiceid = getDolGlobalInt('LMDB_AUTO_INVOICE_SEND_MIN_ID');
 
-print '<tr class="oddeven"><td class="titlefield">'.$langs->trans('LmdbAutoInvoiceSendCronStatus').'</td><td>';
-if ($autosenddiagnostics['lmdb_cron_registered'] && $autosenddiagnostics['lmdb_cron_active']) {
-	print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('LmdbAutoInvoiceSendCronActive');
-} elseif ($autosenddiagnostics['lmdb_cron_registered']) {
-	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('LmdbAutoInvoiceSendCronInactive');
+	print '<form method="POST" action="'.dol_escape_htmltag($pageurl).'">';
+	print '<input type="hidden" name="token" value="'.newToken().'">';
+	print '<input type="hidden" name="action" value="saveautosend">';
+	print '<div class="div-table-responsive-no-min">';
+	print '<table class="noborder centpercent">';
+	print '<tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbAutoInvoiceSendTitle').'</td></tr>';
+
+	print '<tr class="oddeven"><td class="titlefield">'.$langs->trans('LmdbAutoInvoiceSendCronStatus').'</td><td>';
+	if ($autosenddiagnostics['lmdb_cron_registered'] && $autosenddiagnostics['lmdb_cron_active']) {
+		print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('LmdbAutoInvoiceSendCronActive');
+	} elseif ($autosenddiagnostics['lmdb_cron_registered']) {
+		print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('LmdbAutoInvoiceSendCronInactive');
+	} else {
+		print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('LmdbAutoInvoiceSendCronMissing');
+	}
+	print ' - <a href="'.DOL_URL_ROOT.'/cron/list.php">'.$langs->trans('LmdbOpenScheduledJobs').'</a>';
+	print '</td></tr>';
+
+	print '<tr class="oddeven"><td>'.$langs->trans('LmdbDelegationCronStatus').'</td><td>';
+	if ($autosenddiagnostics['legacy_cron_active']) {
+		print img_picto($langs->trans('Warning'), 'warning').' <strong>'.$langs->trans('LmdbDelegationCronConflict').'</strong>';
+	} else {
+		print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('LmdbDelegationCronNotActive');
+	}
+	print '</td></tr>';
+
+	print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendStartMarker').'</td><td>'.((int) $minimuminvoiceid > 0 ? (int) $minimuminvoiceid : $langs->trans('NotDefined')).'</td></tr>';
+	print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendErrorCount').'</td><td>'.((int) $autosenddiagnostics['error_count']).'</td></tr>';
+	print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendReviewCount').'</td><td>'.((int) $autosenddiagnostics['review_count']).'</td></tr>';
+
+	print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendGlobalSender').'</td><td>';
+	if (getDolGlobalString('MAIN_MAIL_EMAIL_FROM') !== '') {
+		print img_picto($langs->trans('Available'), 'tick').' '.dol_escape_htmltag(getDolGlobalString('MAIN_MAIL_EMAIL_FROM'));
+	} else {
+		print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('LmdbAutoInvoiceSendTemplateSenderFallback');
+	}
+	print '</td></tr>';
+
+	print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendMaxPerRun').'</td><td>';
+	print $form->selectarray('lmdb_auto_invoice_send_max_per_run', array(25 => '25', 50 => '50', 100 => '100', 250 => '250'), $maxperrun, 0, 0, 0, '', 0, 0, 0, '', 'minwidth100', 1);
+	print '</td></tr>';
+	print '</table>';
+	print '</div>';
+	print '<div class="center"><input type="submit" class="button button-save" value="'.dol_escape_htmltag($langs->trans('Save')).'"></div>';
+	print '</form>';
 } else {
-	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('LmdbAutoInvoiceSendCronMissing');
+	print '<div class="info">'.$langs->trans('LmdbRecurringInvoiceAutoSendUnavailable');
+	print ' <a href="'.dol_buildpath('/lmdb/admin/compatibility.php', 1).'">'.$langs->trans('LmdbCompatibility').'</a></div>';
 }
-print ' - <a href="'.DOL_URL_ROOT.'/cron/list.php">'.$langs->trans('LmdbOpenScheduledJobs').'</a>';
-print '</td></tr>';
-
-print '<tr class="oddeven"><td>'.$langs->trans('LmdbDelegationCronStatus').'</td><td>';
-if ($autosenddiagnostics['legacy_cron_active']) {
-	print img_picto($langs->trans('Warning'), 'warning').' <strong>'.$langs->trans('LmdbDelegationCronConflict').'</strong>';
-} else {
-	print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('LmdbDelegationCronNotActive');
-}
-print '</td></tr>';
-
-print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendStartMarker').'</td><td>'.((int) $minimuminvoiceid > 0 ? (int) $minimuminvoiceid : $langs->trans('NotDefined')).'</td></tr>';
-print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendErrorCount').'</td><td>'.((int) $autosenddiagnostics['error_count']).'</td></tr>';
-print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendReviewCount').'</td><td>'.((int) $autosenddiagnostics['review_count']).'</td></tr>';
-
-print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendGlobalSender').'</td><td>';
-if (getDolGlobalString('MAIN_MAIL_EMAIL_FROM') !== '') {
-	print img_picto($langs->trans('Available'), 'tick').' '.dol_escape_htmltag(getDolGlobalString('MAIN_MAIL_EMAIL_FROM'));
-} else {
-	print img_picto($langs->trans('Warning'), 'warning').' '.$langs->trans('LmdbAutoInvoiceSendTemplateSenderFallback');
-}
-print '</td></tr>';
-
-print '<tr class="oddeven"><td>'.$langs->trans('LmdbAutoInvoiceSendMaxPerRun').'</td><td>';
-print $form->selectarray('lmdb_auto_invoice_send_max_per_run', array(25 => '25', 50 => '50', 100 => '100', 250 => '250'), $maxperrun, 0, 0, 0, '', 0, 0, 0, '', 'minwidth100', 1);
-print '</td></tr>';
-print '</table>';
-print '</div>';
-print '<div class="center"><input type="submit" class="button button-save" value="'.dol_escape_htmltag($langs->trans('Save')).'"></div>';
-print '</form>';
 
 print '<br>';
 
