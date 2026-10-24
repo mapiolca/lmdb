@@ -31,7 +31,7 @@ img/lmdb.png
 
 ### Attestations individuelles de conformité Loi Finance
 
-Dans **Outils → Attestation de conformité Loi Finance**, créer un brouillon en sélectionnant le tiers, la version et la date d’attestation. Le catalogue des versions est administré depuis **Configuration → Attestations** : aucune version n’est déclarée attestable automatiquement.
+Dans **Outils → Attestation de conformité Loi Finance**, créer un brouillon en sélectionnant le tiers, la version et la date d’attestation. Le catalogue des versions est administré depuis **Configuration → Attestations** : aucune version n’est déclarée attestable automatiquement. Le bouton **+** ouvre une modale d’ajout ; le crayon permet une modification préremplie. Les boutons Enregistrer/Annuler utilisent le pied natif des modales et les messages identifient chaque champ à compléter. Une nouvelle version reste désactivée jusqu’à son activation explicite. L’interrupteur natif change uniquement son état. La corbeille permet de supprimer une version inutilisée après confirmation ; toute attestation liée, même brouillon ou annulée, bloque la suppression.
 
 Les réglages présentent d’abord **Numérotation**, puis **Modèles de document**, avec les colonnes et interrupteurs natifs. Le modèle **Standard** utilise le format fixe `ATLF-{yyyy}-{0000}`. Le modèle **Advanced** permet de saisir un masque dans sa description, avec l’aide Dolibarr et un exemple calculé sans réserver de référence. Le choix s’effectue avec les interrupteurs natifs ; le masque Advanced reste conservé lorsque Standard est sélectionné. Le masque est enregistré par entité ; les références déjà attribuées restent inchangées.
 

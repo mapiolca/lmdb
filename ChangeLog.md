@@ -2,7 +2,7 @@
 
 ## 2.0.0 - 2026-10-24
 
-- Ajout des attestations individuelles de conformité Loi Finance : catalogue de versions, brouillons, validation avec instantané légal, annulation et PDF fiscal à deux volets avec en-têtes documentaires Dolibarr.
+- Ajout des attestations individuelles de conformité Loi Finance : catalogue de versions avec ajout/édition en modales à pied natif, activation et suppression protégée des entrées inutilisées, messages de validation nommant les champs à compléter, brouillons, validation avec instantané légal, annulation et PDF fiscal à deux volets avec en-têtes documentaires Dolibarr.
 - Intégration aux menus Outils, fichiers joints avec glisser-déposer natif, Agenda et Notifications natifs, modèles de courriel dédiés, numérotation des brouillons `(PROV{ID})`, modèle Standard fixe et modèle Advanced à masque personnalisable avec aide et exemple natifs, confirmations en modales, permissions, export et API REST.
 - Documents et partages Multicompany rattachés à l’entité propriétaire ; signature PNG privée et protection contre le rejeu des envois.
 - Rétablissement du logo société dans la liste des modules ; pictogramme certificat bleu pour les attestations.
