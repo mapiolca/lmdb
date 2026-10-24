@@ -20,10 +20,11 @@ htdocs/custom/lmdb
 
 Activer ensuite le module **LMDB** depuis la liste des modules Dolibarr.
 
-Le pictogramme du module est fourni dans :
+Le logo de la société est fourni sous les deux noms attendus par les versions Dolibarr :
 
 ```text
 img/object_lmdb.png
+img/lmdb.png
 ```
 
 ## Fonctionnalités
@@ -32,11 +33,11 @@ img/object_lmdb.png
 
 Dans **Outils → Attestation de conformité Loi Finance**, créer un brouillon en sélectionnant le tiers, la version et la date d’attestation. Le catalogue des versions est administré depuis **Configuration → Attestations** : aucune version n’est déclarée attestable automatiquement.
 
-Configurer le représentant de l’émetteur, sa qualité, le lieu et une signature visuelle PNG. La validation réserve une référence par le modèle de numérotation natif et fige les informations légales du tiers, de l’émetteur, de la version et la signature. La signature visuelle n’est pas une signature électronique cryptographique. Une attestation validée est immuable ; elle peut être annulée, puis remplacée par une nouvelle attestation.
+Configurer le représentant de l’émetteur, sa qualité, le lieu et une signature visuelle PNG. Le brouillon porte la référence `(PROV{ID})`. La validation réserve une référence par le modèle de numérotation natif et fige les informations légales du tiers, de l’émetteur, de la version et la signature. La signature visuelle n’est pas une signature électronique cryptographique. Une attestation validée est immuable ; elle peut être annulée, puis remplacée par une nouvelle attestation.
 
-Le modèle PDF `loifinance` reprend les deux volets du [modèle fiscal BOI-LETTRE-000242 du 25 mars 2026](https://bofip.impots.gouv.fr/bofip/10692-PGP.html/identifiant=BOI-LETTRE-000242-20260325). Le client complète et signe le volet 2 hors ligne ; l’ensemble signé peut être joint en PDF. Les deux volets sont nécessaires. L’activation du module ne constitue pas une certification d’une version de Dolibarr : l’émetteur reste responsable des versions et périmètres qu’il atteste.
+Le modèle PDF `loifinance` reprend les deux volets du [modèle fiscal BOI-LETTRE-000242 du 25 mars 2026](https://bofip.impots.gouv.fr/bofip/10692-PGP.html/identifiant=BOI-LETTRE-000242-20260325). Le client complète et signe le volet 2 hors ligne ; l’ensemble signé peut être joint en PDF. Les deux volets utilisent les en-têtes documentaires Dolibarr : logo, référence, date, émetteur et destinataire. Les deux volets sont nécessaires. L’activation du module ne constitue pas une certification d’une version de Dolibarr : l’émetteur reste responsable des versions et périmètres qu’il atteste.
 
-La fiche utilise les blocs et onglets natifs Notes, Fichiers joints et Événements/Agenda. Les événements `LMDB_ATTESTATION_CREATE`, `LMDB_ATTESTATION_UPDATE` et `LMDB_ATTESTATION_DELETE` sont configurables dans l’administration native Agenda et Notifications. Le contexte `trigger_reason` distingue création, édition, validation, annulation et document. Aucun second événement Agenda n’est créé manuellement.
+Les attestations utilisent le pictogramme certificat bleu et des confirmations en modales natives. La fiche utilise les blocs et onglets natifs Notes, Fichiers joints et Événements/Agenda. Le formulaire classique de dépôt du PDF signé reste dans l’onglet Fichiers joints ; le glisser-déposer natif est activé sur les onglets compatibles, avec les mêmes droits et contrôles serveur. Les événements `LMDB_ATTESTATION_CREATE`, `LMDB_ATTESTATION_UPDATE` et `LMDB_ATTESTATION_DELETE` sont configurables dans l’administration native Agenda et Notifications. Le contexte `trigger_reason` distingue création, édition, validation, annulation et document. Aucun second événement Agenda n’est créé manuellement.
 
 L’envoi individuel depuis la fiche utilise `FormMail`, le contrôleur de courriel et le transport SMTP natifs, car il s’agit d’un document choisi par l’utilisateur, sans abonnement Notifications. Les modèles sont de type exact `lmdbattestation_send` et disposent des substitutions `__LMDB_ATTESTATION_REF__`, `__LMDB_ATTESTATION_VERSION__`, `__LMDB_ATTESTATION_DATE__`, `__LMDB_ATTESTATION_THIRDPARTY__` et `__LMDB_ATTESTATION_URL__`. Un registre empêche le rejeu d’une soumission et bloque un envoi interrompu en état « pending » ; vérifier sa livraison avant toute reprise manuelle. Aucun envoi automatique d’attestation ni nouveau cron n’est ajouté.
 

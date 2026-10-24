@@ -2,9 +2,10 @@
 
 ## 2.0.0 - 2026-10-24
 
-- Ajout des attestations individuelles de conformité Loi Finance : catalogue de versions, brouillons, validation avec instantané légal, annulation et PDF fiscal à deux volets.
-- Intégration aux menus Outils, fichiers joints, Agenda et Notifications natifs, modèles de courriel dédiés, numérotation, permissions, export et API REST.
+- Ajout des attestations individuelles de conformité Loi Finance : catalogue de versions, brouillons, validation avec instantané légal, annulation et PDF fiscal à deux volets avec en-têtes documentaires Dolibarr.
+- Intégration aux menus Outils, fichiers joints avec glisser-déposer natif, Agenda et Notifications natifs, modèles de courriel dédiés, numérotation des brouillons `(PROV{ID})`, confirmations en modales, permissions, export et API REST.
 - Documents et partages Multicompany rattachés à l’entité propriétaire ; signature PNG privée et protection contre le rejeu des envois.
+- Rétablissement du logo société dans la liste des modules ; pictogramme certificat bleu pour les attestations.
 - Mise à jour : réactiver LMDB par entité pour installer les tables et actualiser les déclarations natives, puis configurer les versions attestables et l’émetteur. Les réglages existants sont conservés.
 
 ## 1.2.2 - 2026-09-11
