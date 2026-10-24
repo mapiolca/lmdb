@@ -35,9 +35,9 @@ $search_date_end=GETPOSTDATE('search_date_end');
 if (GETPOST('button_removefilter','alpha') || GETPOST('button_removefilter_x','alpha')) { $search_ref=''; $search_soc=''; $search_version=0; $search_status=''; $search_entity=array(); $search_date_start=false; $search_date_end=false; $page=0; }
 $entities=array();
 if (isModEnabled('multicompany')) {
-	dol_include_once('/multicompany/class/entity.class.php');
+	if (!dol_include_once('/multicompany/class/dao_multicompany.class.php') || !class_exists('DaoMulticompany')) { accessforbidden(); }
 	foreach (array_filter(array_map('intval',explode(',',getEntity('lmdbattestation')))) as $entityid) {
-		$entityobject=new Entity($db);
+		$entityobject=new DaoMulticompany($db);
 		if ($entityobject->fetch($entityid)<=0) { accessforbidden(); }
 		$entities[$entityid]=$entityobject->label;
 	}

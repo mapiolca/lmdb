@@ -1,6 +1,6 @@
 <?php
 /** Third-party Multicompany contract used for entity labels. Verify on instance. */
-class Entity
+class DaoMulticompany
 {
 	/** @var string */
 	public $label;
