@@ -142,6 +142,12 @@ checkAttestation($hookmanager->executeHooks('notifsupported',array(),$object,$ac
 checkAttestation($actions->resprints===null && $actions->results===array(),'Native hook manager resets results after call');
 checkAttestation($hookmanager->executeHooks('emailElementlist',array(),$object,$action)===0 && isset($hookmanager->resArray['lmdbattestation_send']) && !isset($hookmanager->resArray['arrayofnotifsupported']),'Successive native hook calls do not leak results');
 $db->query("INSERT INTO fixture_lmdb_attestation_version VALUES (1,1,'USED','2026-10-24','Covered scope','',1),(2,1,'UNUSED','2026-10-24','Covered scope','',0),(3,2,'OTHER-ENTITY','2026-10-24','Covered scope','',0)");
+$langs->load('lmdb@lmdb');
+$emptycatalogue = new LmdbAttestationVersion($db);
+checkAttestation($emptycatalogue->save($user)<0 && count($emptycatalogue->errors)===3, 'All missing catalogue fields are reported together');
+foreach (array('version','date_release','covered_scope') as $requiredfield) {
+	checkAttestation(strpos($emptycatalogue->getFieldError($requiredfield), $langs->trans($emptycatalogue->fields[$requiredfield]['label']).' : ')===0, 'Required notification identifies '.$requiredfield);
+}
 $catalogue = new LmdbAttestationVersion($db);
 checkAttestation($catalogue->fetch(1)>0 && $catalogue->delete($user)<0 && $catalogue->error==='LmdbAttestedVersionInUse', 'Native child detection blocks deleting a used catalogue version');
 $db->query('UPDATE fixture_lmdb_attestation SET status=2 WHERE rowid=1');

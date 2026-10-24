@@ -119,9 +119,17 @@ class LmdbAttestation extends CommonObject
 	public function validateInputs(User $user)
 	{
 		global $conf, $langs;
+		$this->error = '';
+		$this->errors = array();
+		$validationerrors = array();
 		foreach ($this->fields as $key => $field) {
-			if ($field['visible'] && $key !== 'ref' && !$this->validateField($this->fields, $key, (string) $this->{$key})) { return false; }
+			if ($field['visible'] && $key !== 'ref' && !$this->validateField($this->fields, $key, (string) $this->{$key})) {
+				$message = $langs->trans($field['label']).' : '.$this->getFieldError($key);
+				$this->setFieldError($key, $message);
+				$validationerrors[] = $message;
+			}
 		}
+		if ($validationerrors) { $this->error = ''; $this->errors = $validationerrors; return false; }
 		if ((int) $this->date_attestation <= 0 || (int) $this->fk_soc <= 0 || (int) $this->fk_version <= 0) {
 			$this->error = $langs->trans('ErrorBadParameters'); return false;
 		}

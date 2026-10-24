@@ -39,16 +39,22 @@ class LmdbAttestationVersion extends CommonObject
 	/** Persist a catalogue entry without a separate business event. @return int */
 	public function save(User $user)
 	{
-		global $conf;
+		global $conf, $langs;
 		if (!$user->admin || !$user->hasRight('lmdb', 'setup', 'configure')) {
 			$this->error = 'NotEnoughPermissions';
 			return -1;
 		}
+		$this->error = '';
+		$this->errors = array();
+		$validationerrors = array();
 		foreach ($this->fields as $key => $field) {
 			if ($field['visible'] && !$this->validateField($this->fields, $key, (string) $this->{$key})) {
-				return -1;
+				$message = $langs->trans($field['label']).' : '.$this->getFieldError($key);
+				$this->setFieldError($key, $message);
+				$validationerrors[] = $message;
 			}
 		}
+		if ($validationerrors) { $this->error = ''; $this->errors = $validationerrors; return -1; }
 		if (!$this->date_release || !in_array((int) $this->active, array(0, 1), true)) {
 			$this->error = 'ErrorBadParameters';
 			return -1;

@@ -24,9 +24,9 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formadmin.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 if (!$user->admin || !$user->hasRight('lmdb','setup','configure')) { accessforbidden(); }
 $settingkeys=array('LMDB_ATTESTATION_SIGNER'=>'LmdbIssuerRepresentative','LMDB_ATTESTATION_SIGNER_ROLE'=>'LmdbSignerRole','LMDB_ATTESTATION_CITY'=>'Town');
-$version = new LmdbAttestationVersion($db);
+$catalogueversion = new LmdbAttestationVersion($db);
 $versionid=GETPOSTINT('versionid');
-if ($versionid>0 && $version->fetch($versionid)<=0) { accessforbidden(); }
+if ($versionid>0 && $catalogueversion->fetch($versionid)<=0) { accessforbidden(); }
 // Admin catalogue IDs must not be fetched as attestation IDs by the shared bootstrap.
 if ($_SERVER['REQUEST_METHOD']==='POST' || in_array($action, array('enablepdf','disablepdf','setpdf','setnumbering','setversionactive','confirm_deleteversion'), true)) {
 	$result=-1;
@@ -54,16 +54,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST' || in_array($action, array('enablepdf','
 			}
 		}
 	} elseif ($action==='saveversion') {
-		$version->version=GETPOST('version','alphanohtml');
-		$version->date_release=GETPOSTDATE('date_release');
-		$version->covered_scope=GETPOST('covered_scope','nohtml');
-		$version->excluded_scope=GETPOST('excluded_scope','nohtml');
-		$result=$version->save($user);
+		$catalogueversion->version=GETPOST('version','alphanohtml');
+		$catalogueversion->date_release=GETPOSTDATE('date_release');
+		$catalogueversion->covered_scope=GETPOST('covered_scope','nohtml');
+		$catalogueversion->excluded_scope=GETPOST('excluded_scope','nohtml');
+		$result=$catalogueversion->save($user);
 		if ($result <= 0) { $action = $versionid > 0 ? 'editversion' : 'createversion'; }
-	} elseif ($action==='setversionactive' && $version->id>0) { $result=$version->setActive($user, GETPOSTINT('value'));
+	} elseif ($action==='setversionactive' && $catalogueversion->id>0) { $result=$catalogueversion->setActive($user, GETPOSTINT('value'));
 	} elseif ($action==='confirm_deleteversion') {
 		if (GETPOST('confirm','alpha') !== 'yes') { header('Location: '.$_SERVER['PHP_SELF']); exit; }
-		$result=$version->delete($user);
+		$result=$catalogueversion->delete($user);
 	} elseif ($action==='updateMask') {
 		$mask = GETPOST('maskattestation', 'alphanohtml');
 		$samplethirdparty = new Societe($db);
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' || in_array($action, array('enablepdf','
 		$example = get_next_value($db, $mask, 'lmdb_attestation', 'ref', '', $samplethirdparty, dol_now(), 'next', false, null, (string)(int)$conf->entity);
 		if ($mask !== '' && strlen($mask) <= 128 && !preg_match('/\s/', $mask) && $example !== '' && !preg_match('/^(Error|error)/', $example) && !preg_match('/[{}]/', $example) && $example === dol_sanitizeFileName($example)) {
 			$result = dolibarr_set_const($db, 'LMDB_ATTESTATION_MASK', $mask, 'chaine', 0, '', (int)$conf->entity);
-		} else { $version->error = $langs->trans('ErrorBadMask'); }
+		} else { $catalogueversion->error = $langs->trans('ErrorBadMask'); }
 	} elseif ($action==='enablepdf') { $result=addDocumentModel('loifinance','lmdbattestation','LmdbAttestation');
 	} elseif ($action==='setpdf') {
 		$result=addDocumentModel('loifinance','lmdbattestation','LmdbAttestation');
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' || in_array($action, array('enablepdf','
 		}
 	}
 	if ($result>0) { setEventMessages($langs->trans('RecordSaved'),null,'mesgs'); header('Location: '.$_SERVER['PHP_SELF']); exit; }
-	setEventMessages($langs->trans($version->error ?: 'ErrorBadParameters'),$version->errors,'errors');
+	setEventMessages($langs->trans($catalogueversion->error ?: ($catalogueversion->errors ? '' : 'ErrorBadParameters')),$catalogueversion->errors,'errors');
 }
 llxHeader('',$langs->trans('LmdbAttestations'));
 print load_fiche_titre($langs->trans('LmdbAttestations'),lmdbGetBackToModuleListLink(),'title_setup');
@@ -138,8 +138,10 @@ else {
 }
 if (!$count) { print '<tr class="oddeven"><td colspan="4"><span class="opacitymedium">'.$langs->trans('NoRecordFound').'</span></td></tr>'; }
 print '</table></div>';
-if ($action === 'deleteversion' && $version->id > 0) {
-	print $form->formconfirm($_SERVER['PHP_SELF'].'?versionid='.(int)$version->id, $langs->trans('Delete'), $langs->trans('LmdbAttestedVersionConfirmDelete', dol_escape_htmltag($version->version)), 'confirm_deleteversion', '', 0, 1);
+if ($action === 'deleteversion' && $catalogueversion->id > 0) {
+	$versionused = $catalogueversion->isObjectUsed($catalogueversion->id, (int)$conf->entity);
+	if ($versionused !== 0) { setEventMessages($langs->trans($versionused > 0 ? 'LmdbAttestedVersionInUse' : 'Error'), null, 'errors'); }
+	else { print $form->formconfirm($_SERVER['PHP_SELF'].'?versionid='.(int)$catalogueversion->id, $langs->trans('Delete'), $langs->trans('LmdbAttestedVersionConfirmDelete', dol_escape_htmltag($catalogueversion->version)), 'confirm_deleteversion', '', 0, 1); }
 }
 if (in_array($action, array('createversion','editversion'), true)) { require __DIR__.'/../lib/lmdb_attestation_version_form.php'; }
 print dol_get_fiche_end(); llxFooter(); $db->close();

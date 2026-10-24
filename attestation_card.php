@@ -49,7 +49,7 @@ if (!$reshook && in_array($action,array('add','save','confirm_validate','confirm
 		setEventMessages($langs->trans('RecordSaved'),null,'mesgs');
 		header('Location: '.($action === 'confirm_delete' ? dol_buildpath('/lmdb/attestation_list.php',1) : $cardurl.'?id='.(int)$object->id)); exit;
 	}
-	setEventMessages($langs->trans($object->error ?: 'ErrorBadParameters'),$object->errors,'errors');
+	setEventMessages($langs->trans($object->error ?: ($object->errors ? '' : 'ErrorBadParameters')),$object->errors,'errors');
 	if ($action === 'add' || $action === 'save') { $action = $id > 0 ? 'edit' : 'create'; }
 }
 
