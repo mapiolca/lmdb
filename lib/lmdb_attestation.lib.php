@@ -19,9 +19,10 @@ function lmdbAttestationPrepareHead($object)
 /** Render native banner and fiche head consistently on all tabs. @return void */
 function lmdbAttestationHeader($object, $tab)
 {
-	global $langs;
+	global $langs, $user, $conf;
 	llxHeader('', $langs->trans('LmdbAttestation'));
-	print dol_get_fiche_head(lmdbAttestationPrepareHead($object), $tab, $langs->trans('LmdbAttestation'), -1, $object->picto);
+	$dragdrop = LmdbCompatibility::isFeatureAvailable('attestation_pdf_upload') && (int)$object->status === 1 && (int)$object->entity === (int)$conf->entity && $user->hasRight('lmdb','lmdbattestation','write');
+	print dol_get_fiche_head(lmdbAttestationPrepareHead($object), $tab, $langs->trans('LmdbAttestation'), -1, $object->picto, 0, '', '', 0, '', $dragdrop ? 1 : 0);
 	$back = '<a href="'.dol_buildpath('/lmdb/attestation_list.php',1).'">'.$langs->trans('BackToList').'</a>';
 	dol_banner_tab($object, 'ref', $back, 1, 'ref', 'ref', '<div class="refidno">'.$object->thirdparty->getNomUrl(1).'</div>');
 }

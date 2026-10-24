@@ -26,6 +26,8 @@ if (!$pdf || !lmdbAttestationFileBelongsToObject($object,$pdf) || !is_readable($
 	$formmail = new LmdbAttestationMail($db);
 	$formmail->trackid='lmdbattestation'.$id;
 	$formmail->fromtype='user'; $formmail->fromid=$user->id;
+	$formmail->fromname=GETPOSTISSET('fromname')?GETPOST('fromname','alphanohtml'):$user->getFullName($langs);
+	$formmail->frommail=GETPOSTISSET('frommail')?GETPOST('frommail','email'):$user->email;
 	$formmail->withfrom=1; $formmail->withfromreadonly=0;
 	$formmail->withto=array('thirdparty'=>$object->thirdparty->name.' <'.$object->thirdparty->email.'>');
 	$formmail->withtofree=1; $formmail->withtocc=1; $formmail->withtoccc=1;

@@ -28,9 +28,8 @@ else {
 	// genallowed controls the generation form; read is checked by the document hook.
 	print '<div id="lmdb_attestation_documents">';
 	print $formfile->showdocuments('lmdb:lmdbattestation',$object->ref,$dir,$_SERVER['PHP_SELF'].'?id='.$object->id,$canGenerate ? 1 : 0,$canDelete ? 1 : 0,$object->model_pdf,1,1,0,0,0,'entity='.(int)$object->entity,'','','fr_FR','',$object,0,'deletefile');
-	if ($canUpload) {
+	if ($canUpload && basename($_SERVER['PHP_SELF']) === 'attestation_document.php') {
 		$formfile->form_attach_new_file($_SERVER['PHP_SELF'].'?id='.$object->id,$langs->trans('LmdbAttestationSignedReturn'),0,0,1,50,$object,'',1,$object->ref.'-__file__',0,'formuserfile','.pdf');
-		if (function_exists('dragAndDropFileUpload')) { print dragAndDropFileUpload('lmdb_attestation_documents'); }
 	}
 	print '</div>';
 }

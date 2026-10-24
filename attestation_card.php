@@ -135,7 +135,7 @@ if ($action === 'create' || $action === 'edit') {
 		if ((int)$object->status===0 && $permissiontodelete) { $buttons['confirm_delete']='Delete'; }
 		if ((int)$object->status===1 && $permissiontocancel) { $buttons['confirm_cancel']='Cancel'; }
 		foreach ($buttons as $operation=>$label) { print '<a class="butAction" href="'.$cardurl.'?id='.$id.'&action='.substr($operation,8).'&token='.newToken().'">'.$langs->trans($label).'</a>'; }
-		if ((int)$object->status===1 && $permissiontosend) { print '<a class="butAction" href="'.$cardurl.'?id='.$id.'&action=presend&token='.newToken().'">'.$langs->trans('SendMail').'</a>'; }
+		if ((int)$object->status===1 && $permissiontosend) { print '<a class="butAction" href="'.$cardurl.'?id='.$id.'&action=presend&mode=init&token='.newToken().'">'.$langs->trans('SendMail').'</a>'; }
 	}
 	print '</div>';
 	if (in_array($action,array('validate','delete','cancel'),true)) {
