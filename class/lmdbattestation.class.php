@@ -278,9 +278,9 @@ class LmdbAttestation extends CommonObject
 	public function getNextNumRef($soc = null)
 	{
 		$model = getDolGlobalString('LMDB_ATTESTATION_ADDON', 'mod_lmdbattestation_standard');
-		if ($model !== 'mod_lmdbattestation_standard') { $this->error = 'LmdbNumberingModelUnavailable'; return ''; }
-		require_once __DIR__.'/../core/modules/lmdb/mod_lmdbattestation_standard.php';
-		$numbering = new mod_lmdbattestation_standard();
+		if (!in_array($model, array('mod_lmdbattestation_standard', 'mod_lmdbattestation_advanced'), true)) { $this->error = 'LmdbNumberingModelUnavailable'; return ''; }
+		require_once __DIR__.'/../core/modules/lmdb/'.$model.'.php';
+		$numbering = new $model();
 		return $numbering->getNextValue($soc, $this);
 	}
 

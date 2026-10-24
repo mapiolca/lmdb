@@ -14,6 +14,18 @@ class LmdbAttestationInstaller
 			if (!$res) { return -1; }
 			if (!$db->num_rows($res) && dolibarr_set_const($db,$key,$value,'chaine',0,'',(int)$entity) <= 0) { return -1; }
 		}
+		// One-time split of the 2.0.0 preview: retain any customized mask by
+		// selecting Advanced, then respect all subsequent administrator choices.
+		$res = $db->query("SELECT name,value FROM ".MAIN_DB_PREFIX."const WHERE name IN ('LMDB_ATTESTATION_ADDON','LMDB_ATTESTATION_MASK','LMDB_ATTESTATION_NUMBERING_SPLIT') AND entity=".(int)$entity);
+		if (!$res) { return -1; }
+		$numberingsettings = array();
+		while (is_object($row = $db->fetch_object($res))) { $numberingsettings[$row->name] = $row->value; }
+		if (!array_key_exists('LMDB_ATTESTATION_NUMBERING_SPLIT', $numberingsettings)) {
+			if (isset($numberingsettings['LMDB_ATTESTATION_ADDON'], $numberingsettings['LMDB_ATTESTATION_MASK']) && $numberingsettings['LMDB_ATTESTATION_ADDON'] === 'mod_lmdbattestation_standard' && $numberingsettings['LMDB_ATTESTATION_MASK'] !== '' && $numberingsettings['LMDB_ATTESTATION_MASK'] !== 'ATLF-{yyyy}-{0000}') {
+				if (dolibarr_set_const($db, 'LMDB_ATTESTATION_ADDON', 'mod_lmdbattestation_advanced', 'chaine', 0, '', (int)$entity) <= 0) { return -1; }
+			}
+			if (dolibarr_set_const($db, 'LMDB_ATTESTATION_NUMBERING_SPLIT', '1', 'chaine', 0, '', (int)$entity) <= 0) { return -1; }
+		}
 		$sql = "INSERT INTO ".MAIN_DB_PREFIX."document_model (nom,type,libelle,entity) SELECT 'loifinance','lmdbattestation','LmdbAttestation',".(int)$entity." WHERE NOT EXISTS (SELECT rowid FROM ".MAIN_DB_PREFIX."document_model WHERE nom='loifinance' AND type='lmdbattestation' AND entity=".(int)$entity.")";
 		if (!$db->query($sql)) { return -1; }
 		foreach (array('CREATE','UPDATE','DELETE') as $crud) {

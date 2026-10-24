@@ -142,19 +142,27 @@ checkAttestation($hookmanager->executeHooks('notifsupported',array(),$object,$ac
 checkAttestation($actions->resprints===null && $actions->results===array(),'Native hook manager resets results after call');
 checkAttestation($hookmanager->executeHooks('emailElementlist',array(),$object,$action)===0 && isset($hookmanager->resArray['lmdbattestation_send']) && !isset($hookmanager->resArray['arrayofnotifsupported']),'Successive native hook calls do not leak results');
 require_once dirname(__DIR__).'/core/modules/lmdb/mod_lmdbattestation_standard.php';
-$numbering = new mod_lmdbattestation_standard();
+require_once dirname(__DIR__).'/core/modules/lmdb/mod_lmdbattestation_advanced.php';
 $conf->global->LMDB_ATTESTATION_MASK = 'REC{yy}{mm}-{0000}';
+$standard = new mod_lmdbattestation_standard();
+$numbering = new mod_lmdbattestation_advanced();
 $db->failSql = 'FOR UPDATE';
+checkAttestation($standard->getExample() === 'ATLF-'.date('Y', dol_now()).'-0002', 'Standard remains fixed when the Advanced mask is customized');
 $preview = $numbering->getExample();
 checkAttestation($preview === 'REC'.date('ym', dol_now()).'-0001', 'Custom mask preview uses native date and counter without locking');
 checkAttestation($numbering->getExample() === $preview, 'Repeated preview does not consume a reference');
 $db->failSql = '';
 $conf->global->LMDB_ATTESTATION_MASK = 'REC-{cccc}-{0000}';
+$numbering = new mod_lmdbattestation_advanced();
 $sample = new LmdbAttestation($db); $sample->specimen = 1; $sample->date_attestation = dol_now();
 $thirdparty = new Societe($db); $thirdparty->code_client = 'CLIENT';
 checkAttestation($numbering->getNextValue($thirdparty, $sample) === 'REC-CLIE-0001', 'Custom mask receives the actual thirdparty code');
 $db->query("INSERT INTO fixture_lmdb_attestation (entity,ref,fk_soc,fk_version,date_attestation,date_creation,fk_user_creat) VALUES (2,'REC-CLIE-0099',2,1,'2026-10-24','2026-10-24',1)");
 checkAttestation($numbering->getNextValue($thirdparty, $sample) === 'REC-CLIE-0001', 'Custom mask counter excludes inaccessible entities');
+$conf->global->LMDB_ATTESTATION_ADDON = 'mod_lmdbattestation_advanced';
+checkAttestation($sample->getNextNumRef($thirdparty) === 'REC-CLIE-0001', 'Object uses the selected Advanced numbering model');
+$conf->global->LMDB_ATTESTATION_ADDON = 'mod_lmdbattestation_standard';
+checkAttestation($sample->getNextNumRef($thirdparty) === 'ATLF-'.date('Y', dol_now()).'-0002', 'Object uses the selected fixed Standard model');
 $conf->global->LMDB_ATTESTATION_MASK = 'ATLF-{yyyy}-{0000}';
 if (in_array('--pdf',$argv,true)) {
 	require_once $core.'/core/lib/functions2.lib.php';
