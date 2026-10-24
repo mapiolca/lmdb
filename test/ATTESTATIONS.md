@@ -43,7 +43,7 @@ Contrats examinés dans `htdocs/core/` : `CommonObject` (CRUD, validation, index
 
 Déploiement du code effectué via le navigateur intégré et cPanel ControlGit : dépôt **DEVELOP - LMDB**, branche `feat/attestations-conformite-loi-finance`, dans le répertoire du module servi par develop. L’état initial était la branche `fix/v24-autosend-invoice-disabled`, commit `02be1b77fda5fd41cea9f5f7c589fa2cd184d581`. La bascule de branche a été confirmée par le SHA affiché dans cPanel. Le dépôt étant directement dans le répertoire servi, aucune tâche `.cpanel.yml` supplémentaire n’est nécessaire.
 
-Instance constatée : **Dolibarr 25.0.0-alpha, PHP 8.3.36, Multicompany actif**, entité TEST 1. La révision du core et la version du module tiers Multicompany ne sont pas connues. Le dernier code fonctionnel déployé et vérifié est `114f4a604142c70f8a8d89872df9dd4af83fb247` ; les mises à jour documentaires suivantes ne changent pas ces résultats.
+Instance constatée : **Dolibarr 25.0.0-alpha, PHP 8.3.36, Multicompany actif**, entité TEST 1. La révision du core et la version du module tiers Multicompany ne sont pas connues. Le dernier code fonctionnel déployé et vérifié est `efc84a38bd39b41d154c6c13bfac366a34465314` ; les mises à jour documentaires suivantes ne changent pas ces résultats.
 
 Essais réels du 24 octobre 2026, dans le navigateur intégré :
 
@@ -96,3 +96,16 @@ Code `114f4a604142c70f8a8d89872df9dd4af83fb247`, vérifié le 24 octobre 2026 su
 - Syntaxe des **41 fichiers PHP**, PHPStan **2.3.1 niveau 5**, régression native avec PDF : réussis sur le code indiqué. Les quatre nouveaux contrôles de validation vérifient le regroupement des trois champs manquants et leurs libellés. Aucun ignore ni baseline ajouté. Contrats natifs de détection des dépendances et `getNonce()` lus sur le socle v20 ; cela ne constitue pas une recette v20 complète.
 
 État final : LMDB actif ; les deux versions fictives du catalogue sont conservées désactivées. Le spécimen d’attestation reste annulé. Standard sélectionné, masque Advanced initial conservé, modèle PDF actif/par défaut. Aucun email envoyé ni réglage global d’email ou d’Agenda modifié pendant ce complément.
+
+
+## Complément de recette — ville de l’entité, ajout et compatibilité
+
+Code `c9dc4f7` puis `efc84a38bd39b41d154c6c13bfac366a34465314`, même instance develop et même PHP, le 24 octobre 2026 :
+
+- Ville de signature lue directement dans `$mysoc->town`, alimenté par la constante native d’entité `MAIN_INFO_SOCIETE_TOWN`. Les réglages affichent **Ville : Là-bas**, en lecture seule, sans champ de saisie ni constante miroir. La ville est figée dans l’instantané à la validation ; les anciens instantanés et la constante LMDB historique sont conservés. Nouvelle validation distante et changement d’entité non exécutés dans ce complément.
+- Bouton **+** rendu par `dolGetButtonTitle()` : classes natives `btnTitle btnTitlePlus` et `fa fa-plus-circle valignmiddle btnTitle-icon` observées. Ouverture de la modale puis Annuler testés, sans création supplémentaire.
+- Page Compatibilité : `dolGetBadge()` fournit les badges verts **Disponible** et jaunes **Indisponible**. Cellule Raison vide pour les attestations disponibles ; motif natif conservé pour l’envoi LMDB des factures récurrentes indisponible dès v24. Aucun prédicat de disponibilité modifié.
+- SHA servi confirmé dans ControlGit et comportement du code déployé observé après rechargement. Syntaxe PHP, régression native avec PDF et PHPStan 2.3.1 niveau 5 réussis ; la page Compatibilité est désormais incluse explicitement dans l’analyse. Aucun ignore ni baseline ajouté.
+- Contrats de `Societe::setMysoc()`, `dolGetButtonTitle()` et `dolGetBadge()` lus dans les sources locales v24.0.1 et au tag v20.0.0 (`697bf01970740a3339cd99cf055b4428fc5e051c`). Cette lecture ne constitue pas une recette sur toutes les versions supportées.
+
+LMDB reste activé, versions fictives désactivées et réglages d’email/Agenda conservés. Aucun courriel envoyé ni donnée supprimée pendant ces vérifications.
