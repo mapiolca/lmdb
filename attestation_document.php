@@ -43,16 +43,6 @@ if ($action === 'deletefile' || $action === 'deletelink') {
 	$questions = $action === 'deletelink' ? array(array('type'=>'hidden','name'=>'linkid','value'=>GETPOSTINT('linkid'))) : array(array('type'=>'hidden','name'=>'urlfile','value'=>GETPOST('urlfile','alpha')));
 	print $form->formconfirm($_SERVER['PHP_SELF'].'?id='.$id,$langs->trans('DeleteFile'),$langs->trans('ConfirmDeleteFile',dol_escape_htmltag(basename(GETPOST('urlfile','alpha')))),'confirm_deletefile',$questions,0,1);
 }
-$canGenerate = (int)$object->entity === (int)$conf->entity && (int)$object->status === 1 && $user->hasRight('lmdb','lmdbattestation','generate');
-if ($canGenerate) {
-	require_once __DIR__.'/core/modules/lmdb/modules_lmdbattestation.php';
-	$models = ModelePDFLmdbattestation::liste_modeles($db);
-	if (is_array($models) && $models) {
-		print '<form method="post" action="'.$_SERVER['PHP_SELF'].'?id='.$id.'"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="action" value="builddoc"><input type="hidden" name="id" value="'.$id.'"><div class="center formdoc">';
-		print $langs->trans('Model').' '.$form->selectarray('model',$models,$object->model_pdf,0,0,0,'',0,0,0,'','maxwidth300');
-		print ajax_combobox('model').'<input class="button buttongen reposition" type="submit" value="'.$langs->trans('Generate').'"></div></form>';
-	}
-}
 $canUpload = $permissiontoadd && (int)$object->status === 1 && LmdbCompatibility::isFeatureAvailable('attestation_pdf_upload');
 
 $embeddedforms = LmdbCompatibility::isFeatureAvailable('attestation_document_embedded_forms');

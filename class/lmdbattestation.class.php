@@ -300,9 +300,10 @@ class LmdbAttestation extends CommonObject
 	 * @param string $source internal or external
 	 * @return array<int,bool>|false
 	 */
-	private function accessibleContactIds($source)
+	public function accessibleContactIds($source)
 	{
 		global $user;
+		if (!$user->hasRight('lmdb','lmdbattestation','read')) { return array(); }
 		if ($source === 'external') {
 			if (!$user->hasRight('societe', 'contact', 'lire')) { return array(); }
 			$sql = 'SELECT rowid FROM '.MAIN_DB_PREFIX.'socpeople WHERE fk_soc='.(int)$this->fk_soc.' AND entity IN ('.$this->db->sanitize(getEntity('contact')).')';

@@ -67,7 +67,7 @@ class modLmdb extends DolibarrModules
 			'theme' => 0,
 			'css' => array(),
 			'js' => array(),
-			'hooks' => array('data' => array('mailingcard', 'pdfgeneration', 'notification', 'emailtemplates', 'main', 'fileupload', 'fileslib', 'elementproperties', 'multicompanyexternalmodulesharing', 'multicompanyexternalmodules', 'multicompanysharingoptions'), 'entity' => '0'),
+			'hooks' => array('data' => array('lmdbattestationcard', 'mailingcard', 'pdfgeneration', 'notification', 'emailtemplates', 'main', 'fileupload', 'fileslib', 'elementproperties', 'multicompanyexternalmodulesharing', 'multicompanyexternalmodules', 'multicompanysharingoptions'), 'entity' => '0'),
 			'moduleforexternal' => 0,
 			'websitetemplates' => 0,
 			'captcha' => 0,

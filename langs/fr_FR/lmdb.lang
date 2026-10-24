@@ -319,3 +319,5 @@ LmdbAttestationEvent_contacts=Contacts de l’attestation %s modifiés
 LmdbFeatureEmbeddedDocumentForms=Formulaires documentaires intégrés aux titres
 LmdbFeatureEmbeddedDocumentFormsDescription=Boutons natifs d’ajout de fichier ou de lien dans les titres, disponibles depuis Dolibarr 21.
 LmdbRequires21EmbeddedDocumentForms=Dolibarr 21 requis pour les formulaires intégrés ; Dolibarr 20 conserve ses formulaires classiques.
+
+ContactDefault_lmdbattestation=Attestation de conformité Loi Finance

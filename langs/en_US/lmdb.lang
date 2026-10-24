@@ -319,3 +319,5 @@ LmdbAttestationEvent_contacts=Contacts updated for attestation %s
 LmdbFeatureEmbeddedDocumentForms=Document forms embedded in titles
 LmdbFeatureEmbeddedDocumentFormsDescription=Native file/link add buttons in titles, available since Dolibarr 21.
 LmdbRequires21EmbeddedDocumentForms=Dolibarr 21 is required for embedded forms; Dolibarr 20 keeps its classic native forms.
+
+ContactDefault_lmdbattestation=Finance Act conformity attestation

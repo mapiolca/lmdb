@@ -51,6 +51,37 @@ class ActionsLmdb
 		$this->db = $db;
 	}
 
+	/** Restrict the native contact form's company selector to its fixed beneficiary.
+	 * @param array<string,mixed> $parameters Hook parameters
+	 * @param object|null $object Native selector object
+	 * @param string $action Current action
+	 * @param HookManager $hookmanager Native manager
+	 * @return int
+	 */
+	public function selectCompaniesForNewContactListWhere($parameters, &$object, &$action, $hookmanager)
+	{
+		global $lmdbAttestationContact, $user;
+		if (!($lmdbAttestationContact instanceof LmdbAttestation)) { return 0; }
+		$this->resprints = $user->hasRight('lmdb','lmdbattestation','write') ? ' AND s.rowid='.(int)$lmdbAttestationContact->fk_soc : ' AND 1=0';
+		return 1;
+	}
+
+	/** Same business scope as contact mutation, applied before native user selection.
+	 * @param array<string,mixed> $parameters Hook parameters
+	 * @param object|null $object Native selector object
+	 * @param string $action Current action
+	 * @param HookManager $hookmanager Native manager
+	 * @return int
+	 */
+	public function addSQLWhereFilterOnSelectUsers($parameters, &$object, &$action, $hookmanager)
+	{
+		global $lmdbAttestationContact, $user;
+		if (!($lmdbAttestationContact instanceof LmdbAttestation)) { return 0; }
+		$ids = $user->hasRight('lmdb','lmdbattestation','write') ? $lmdbAttestationContact->accessibleContactIds('internal') : array();
+		$this->resprints = $ids ? ' AND u.rowid IN ('.implode(',',array_keys($ids)).')' : ' AND 1=0';
+		return 1;
+	}
+
 	/**
 	 * Repair invoice PDF translations before the native model renders content.
 	 *

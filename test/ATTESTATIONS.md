@@ -141,3 +141,13 @@ Code du modèle déployé `2fe6fff3c11b0fae4ab0e2138f8f947694ab0713`, develop Do
 - Le réglage natif de détails de pied est revenu de 1 à sa valeur initiale 0. Les deux versions catalogue sont revenues inactives et les paramètres fictifs d’émetteur/signature ont retrouvé une valeur effective vide par l’administration native. L’asset de signature de test est conservé ; aucun courriel envoyé.
 
 Les essais HTML/texte libre très long et hook de pied sont locaux ; aucun hook tiers de pied activé sur develop. Les essais de droits partiels et documents partagés entre deux entités restent non exécutés sur instance.
+
+### Ajustements demandés pendant la recette
+
+Le formulaire Contacts/Adresses est rendu intégralement par `core/tpl/contacts.tpl.php`, en-tête puis lignes d’ajout dans le même conteneur. Les hooks natifs `selectCompaniesForNewContactListWhere` et `addSQLWhereFilterOnSelectUsers` limitent les sélecteurs au tiers et aux utilisateurs accessibles. Le mode liste natif du tiers est forcé uniquement pendant ce rendu, puis le réglage en mémoire est restauré, car son ancien mode Ajax n’accepte pas de restriction par objet. Les deux hooks sont présents en v20.0.0 et v24.0.1 ; aucune réécriture de template ou de sélecteur.
+
+À la demande de l’utilisateur, le choix de modèle et Générer sont retirés de l’onglet Fichiers joints et conservés sur la fiche principale.
+
+Préchargement à l’installation : familles `23.0` (2026-02-28) et `24.0` (2026-08-20), dates de première publication selon [le wiki officiel](https://wiki.dolibarr.org/index.php/Releases), consulté le 24 octobre 2026. La date GitHub de création d’une release peut différer de la date de publication du wiki (cas 23.0.0). Le périmètre couvert reste vide, l’entrée inactive et son activation est refusée tant qu’il n’est pas renseigné. Aucun fait de certification n’est déduit de la publication du logiciel. La préversion 25.0.0-alpha ne permet pas de précharger une version finale ni un périmètre figé.
+
+Six contrôles locaux supplémentaires vérifient le double passage, les deux versions uniques, le refus d’activation d’un périmètre vide, la conservation d’une entrée personnalisée, l’isolement par entité et l’absence de 25.0. Les insertions sont transactionnelles.

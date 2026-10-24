@@ -8,6 +8,7 @@ class LmdbAttestationInstaller
 	{
 		// Normalize only the provisional references created by the initial 2.0.0 preview.
 		if (!$db->query("UPDATE ".MAIN_DB_PREFIX."lmdb_attestation SET ref=CONCAT('(PROV',rowid,')') WHERE entity=".(int)$entity." AND status=0 AND ref REGEXP '^[(]PROV[0-9a-f]{16}[)]$'")) { return -1; }
+		if (self::initializeCatalogue($db, $entity) < 0) { return -1; }
 		$defaults = array('LMDB_ATTESTATION_ADDON'=>'mod_lmdbattestation_standard','LMDB_ATTESTATION_MASK'=>'ATLF-{yyyy}-{0000}', 'LMDB_ATTESTATION_ADDON_PDF'=>'loifinance');
 		foreach ($defaults as $key=>$value) {
 			$res = $db->query("SELECT rowid FROM ".MAIN_DB_PREFIX."const WHERE name='".$db->escape($key)."' AND entity=".(int)$entity);
@@ -56,4 +57,22 @@ class LmdbAttestationInstaller
 		$sharing = array_replace_recursive(ActionsLmdb::getMulticompanySharingDefinition(), $sharing);
 		return dolibarr_set_const($db,'MULTICOMPANY_EXTERNAL_MODULES_SHARING',json_encode($sharing),'chaine',0,'',(int)$entity) > 0 ? 1 : -1;
 	}
+	/** Seed published release families only; the issuer must define the legal scope.
+	 * Release dates: https://wiki.dolibarr.org/index.php/Releases (read 2026-10-24).
+	 * No 25.0 seed: the alpha does not establish the final release or attested scope.
+	 * @param DoliDB $db Database
+	 * @param int $entity Owner entity
+	 * @return int
+	 */
+	public static function initializeCatalogue($db, $entity)
+	{
+		if ((int)$entity <= 0 || !$db->begin()) { return -1; }
+		foreach (array('23.0'=>'2026-02-28', '24.0'=>'2026-08-20') as $version=>$date) {
+			$sql = "INSERT INTO ".MAIN_DB_PREFIX."lmdb_attestation_version (entity,version,date_release,covered_scope,excluded_scope,active) SELECT ".(int)$entity.",'".$version."','".$date."','','',0 WHERE NOT EXISTS (SELECT rowid FROM ".MAIN_DB_PREFIX."lmdb_attestation_version WHERE entity=".(int)$entity." AND version='".$version."')";
+			if (!$db->query($sql)) { $db->rollback(); return -1; }
+		}
+		if (!$db->commit()) { $db->rollback(); return -1; }
+		return 1;
+	}
+
 }

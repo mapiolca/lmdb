@@ -66,9 +66,10 @@ class LmdbAttestationVersion extends CommonObject
 	/** Change only the activation state; never overwrite catalogue content. @return int */
 	public function setActive(User $user, $active)
 	{
-		global $conf;
+		global $conf, $langs;
 		if (!isModEnabled('lmdb') || !$user->admin || $user->socid > 0 || !$user->hasRight('lmdb', 'setup', 'configure')) { $this->error = 'NotEnoughPermissions'; return -1; }
 		if (!in_array($active, array(0, 1), true) || $this->id <= 0 || $this->fetch($this->id) <= 0) { $this->error = 'ErrorBadParameters'; return -1; }
+		if ($active === 1 && !$this->validateField($this->fields, 'covered_scope', $this->covered_scope)) { $this->error = $langs->trans('LmdbCoveredScope').' : '.$this->getFieldError('covered_scope'); return -1; }
 		if (!$this->db->query('UPDATE '.MAIN_DB_PREFIX.$this->table_element.' SET active='.$active.' WHERE rowid='.(int)$this->id.' AND entity='.(int)$conf->entity)) { $this->error = $this->db->lasterror(); return -1; }
 		$this->active = $active;
 		return 1;

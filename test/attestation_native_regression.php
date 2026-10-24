@@ -121,6 +121,20 @@ checkAttestation($object->liste_contact(-1,'external')===array(),'Moved contact 
 $db->query('UPDATE fixture_socpeople SET fk_soc=1 WHERE rowid=1');
 $db->query('DELETE FROM fixture_element_contact');
 
+// Idempotent release seeding must preserve custom content and inactive defaults.
+require_once dirname(__DIR__).'/class/lmdbattestationinstaller.class.php';
+require_once dirname(__DIR__).'/class/lmdbattestationversion.class.php';
+checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,1)>0 && LmdbAttestationInstaller::initializeCatalogue($db,1)>0,'Catalogue seed is repeatable');
+$seedrows=$db->query("SELECT * FROM fixture_lmdb_attestation_version WHERE entity=1 AND version IN ('23.0','24.0')");
+checkAttestation($db->num_rows($seedrows)===2,'Published 23.0 and 24.0 families are seeded once');
+$seed=$db->fetch_object($seedrows); $seedversion=new LmdbAttestationVersion($db); $seedversion->id=(int)$seed->rowid;
+checkAttestation((int)$seed->active===0 && $seedversion->setActive($user,1)<0,'Incomplete seeded scope cannot be activated');
+$db->query("UPDATE fixture_lmdb_attestation_version SET covered_scope='Custom scope',active=1 WHERE entity=1 AND version='23.0'");
+checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,1)>0 && $db->fetch_object($db->query("SELECT covered_scope,active FROM fixture_lmdb_attestation_version WHERE entity=1 AND version='23.0'"))->covered_scope==='Custom scope','Seed preserves an existing issuer scope and activation');
+checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,2)>0 && $db->num_rows($db->query("SELECT rowid FROM fixture_lmdb_attestation_version WHERE entity=2"))===2,'Catalogue seed belongs to each owner entity');
+checkAttestation($db->num_rows($db->query("SELECT rowid FROM fixture_lmdb_attestation_version WHERE version LIKE '25%'"))===0,'Alpha does not seed a final 25.0 version');
+$db->query("DELETE FROM fixture_lmdb_attestation_version WHERE version IN ('23.0','24.0')");
+
 // Only thirdparty hydration is simulated here; object/rights/entity fetching is native.
 class AttestationTooltipFixture extends LmdbAttestation {
 	public function fetch_thirdparty($force_thirdparty_id = 0) {
@@ -201,6 +215,11 @@ $action='';
 checkAttestation($hookmanager->executeHooks('notifsupported',array(),$object,$action)===0 && count($hookmanager->resArray['arrayofnotifsupported'])===3,'Native hook manager receives all CRUD notifications');
 checkAttestation($actions->resprints===null && $actions->results===array(),'Native hook manager resets results after call');
 checkAttestation($hookmanager->executeHooks('emailElementlist',array(),$object,$action)===0 && isset($hookmanager->resArray['lmdbattestation_send']) && !isset($hookmanager->resArray['arrayofnotifsupported']),'Successive native hook calls do not leak results');
+$lmdbAttestationContact=$object;
+checkAttestation($hookmanager->executeHooks('selectCompaniesForNewContactListWhere',array(),$object,$action)===1 && $hookmanager->resPrint===' AND s.rowid=1','Native contact company selector is limited to its beneficiary');
+checkAttestation($hookmanager->executeHooks('addSQLWhereFilterOnSelectUsers',array(),$object,$action)===1 && $hookmanager->resPrint===' AND u.rowid IN (1)','Native user selector uses the contact business scope');
+unset($lmdbAttestationContact);
+checkAttestation($hookmanager->executeHooks('selectCompaniesForNewContactListWhere',array(),$object,$action)===0 && $hookmanager->resPrint==='','Contact selector hook leaves other forms unchanged');
 $db->query("INSERT INTO fixture_lmdb_attestation_version VALUES (1,1,'USED','2026-10-24','Covered scope','',1),(2,1,'UNUSED','2026-10-24','Covered scope','',0),(3,2,'OTHER-ENTITY','2026-10-24','Covered scope','',0)");
 $langs->load('lmdb@lmdb');
 $emptycatalogue = new LmdbAttestationVersion($db);
