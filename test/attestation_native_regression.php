@@ -159,13 +159,21 @@ if (in_array('--pdf',$argv,true)) {
 		$mysoc=new class($db) extends Societe { public $useLocalTax2=0; };
 		$conf->global->MAIN_PDF_FREETEXT='<p>'.str_repeat('Texte libre de pied de page avec caractères accentués. ',8).'</p>';
 		$conf->global->PDF_ALLOW_HTML_FOR_FREE_TEXT=1;
-		class AttestationPdfHooks extends HookManager {
-			public function executeHooks($method,$parameters=array(),&$object=null,&$action='') {
-				if ($method==='pdf_pagefoot') { $this->resPrint='<p>Complément de pied de page de recette — hook natif actif.</p>'; return 0; }
-				return parent::executeHooks($method,$parameters,$object,$action);
+		class AttestationPdfFootHook {
+			public $warnings=array();
+			public $resprints;
+			public $results=array();
+			public $error='';
+			public $errors=array();
+			public function pdf_pagefoot($parameters,&$object,&$action,$hookmanager) {
+				$this->resprints='<p>Complément de pied de page de recette — hook natif actif.</p>';
+				return 0;
 			}
 		}
-		$hookmanager=new AttestationPdfHooks($db);
+		$hookmanager=new HookManager($db);
+		$hookmanager->hooks=array('pdfgeneration'=>array('fixture'=>new AttestationPdfFootHook()));
+		$hookmanager->hooksSorted=$hookmanager->hooks;
+		$hookmanager->contextarray=array('pdfgeneration');
 	}
 	class AttestationPdfFixture extends LmdbAttestation {
 		public $documentEvents=0;
@@ -173,14 +181,15 @@ if (in_array('--pdf',$argv,true)) {
 		public function emitCrud($action,$reason,User $user) { if ($action==='UPDATE' && $reason==='document') { $this->documentEvents++; } return 1; }
 	}
 	$fixture=new AttestationPdfFixture($db);
-	foreach (array('id','ref','entity','status','snapshot_data') as $key) { $fixture->{$key}=$object->{$key}; }
+	foreach (array('id','ref','entity','status','snapshot_data','date_attestation') as $key) { $fixture->{$key}=$object->{$key}; }
 	$model=new pdf_loifinance($db);
 	checkAttestation($model->write_file($fixture,$langs)>0,'Native TCPDF two-part PDF generated');
 	$db->query("UPDATE fixture_lmdb_attestation SET snapshot_data='".$db->escape($object->snapshot_data)."' WHERE rowid=1");
 	$db->query('CREATE TABLE fixture_document_model (nom text,type text,libelle text,description text,entity integer)');
 	$db->query("INSERT INTO fixture_document_model VALUES ('loifinance','lmdbattestation','LmdbAttestation','',1)");
 	$conf->modules_parts['models']=array('/lmdb/');
-	checkAttestation($fixture->generateDocument('loifinance',$langs)>0,'Native generator discovery and business document generation succeed');
+	$generated=$fixture->generateDocument('loifinance',$langs);
+	checkAttestation($generated>0,'Native generator discovery and business document generation succeed'.($generated>0?'':': '.$fixture->error));
 	checkAttestation($fixture->documentEvents===1,'Document generation emits a single UPDATE event');
 	echo $dir.'/'.$fixture->ref.'.pdf'."\n";
 }

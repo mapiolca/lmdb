@@ -296,3 +296,5 @@ LmdbAttestationConfirm_cancel=Annuler cette attestation ? Son historique sera co
 
 LmdbFeaturePdfUpload=Fichiers joints PDF
 LmdbRequiresFileinfo=Extension PHP Fileinfo requise pour contrôler le type réel des fichiers.
+
+LmdbAttestationHeaderTooHigh=L’en-tête est trop volumineux pour permettre la génération de l’attestation.
