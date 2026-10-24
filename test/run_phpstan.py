@@ -21,7 +21,7 @@ classes = ['core/class/commonobject.class.php', 'core/class/commondocgenerator.c
 functions = [core/'core/lib'/name for name in ['functions.lib.php','functions2.lib.php','admin.lib.php','pdf.lib.php','security.lib.php','files.lib.php','ajax.lib.php','company.lib.php','date.lib.php']]
 scans = [str(root/'test/phpstan-multicompany.stub')] + [str(p) for p in (core/'core/class').glob('*.php')] + [str(p) for p in (root/'class').glob('*.php')] + [str(p) for p in (root/'lib').glob('*.php')] + [str(core/p) for p in classes if (core/p).is_file()] + [str(p) for p in functions]
 paths = [str(p) for pattern in ['attestation_*.php','admin/attestation.php','class/lmdbattestation*.php','class/api_lmdb.class.php','core/modules/lmdb/*.php','core/modules/lmdb/doc/*.php','lib/lmdb_attestation*.php'] for p in root.glob(pattern)]
-paths += [str(root/p) for p in ['class/actions_lmdb.class.php','class/lmdbcompatibility.class.php','core/modules/modLmdb.class.php','core/substitutions/functions_lmdb.lib.php','core/triggers/interface_99_modLmdb_LmdbTriggers.class.php','lib/lmdb.lib.php','admin/about.php']]
+paths += [str(root/p) for p in ['class/actions_lmdb.class.php','class/lmdbcompatibility.class.php','core/modules/modLmdb.class.php','core/substitutions/functions_lmdb.lib.php','core/triggers/interface_99_modLmdb_LmdbTriggers.class.php','lib/lmdb.lib.php','admin/about.php','admin/compatibility.php']]
 
 config = {'parameters': {'level': 5, 'phpVersion': 80000, 'tmpDir': str(cache/'phpstan-cache'),
                          'bootstrapFiles': [str(root/'test/phpstan_bootstrap.php')],

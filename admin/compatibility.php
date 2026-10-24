@@ -21,8 +21,13 @@
  * \brief      Compatibility page for LMDB module.
  */
 
+/** @var DoliDB $db */
+/** @var Translate $langs */
+/** @var User $user */
+global $db, $langs, $user;
+
 $res = 0;
-if (!$res && !empty($_SERVER['CONTEXT_DOCUMENT_ROOT'])) {
+if (!empty($_SERVER['CONTEXT_DOCUMENT_ROOT'])) {
 	$res = @include $_SERVER['CONTEXT_DOCUMENT_ROOT'].'/main.inc.php';
 }
 if (!$res && !empty($_SERVER['DOCUMENT_ROOT'])) {
@@ -92,17 +97,9 @@ foreach (LmdbCompatibility::getFeatures() as $feature) {
 	print '<td>'.dol_escape_htmltag($feature['core_available_from']).'</td>';
 	print '<td>'.dol_escape_htmltag($feature['module_available_from']).'</td>';
 	print '<td>'.dol_escape_htmltag($feature['min_php']).'</td>';
+	print '<td>'.dolGetBadge($langs->trans($feature['available'] ? 'Available' : 'Unavailable'), '', $feature['available'] ? 'success' : 'warning').'</td>';
 	print '<td>';
-	if (!empty($feature['available'])) {
-		print img_picto($langs->trans('Available'), 'tick').' '.$langs->trans('Available');
-	} else {
-		print img_picto($langs->trans('Unavailable'), 'warning').' '.$langs->trans('Unavailable');
-	}
-	print '</td>';
-	print '<td>';
-	if (empty($feature['reasons'])) {
-		print $langs->trans('FeatureAvailable');
-	} else {
+	if (!$feature['available'] && $feature['reasons']) {
 		$translatedreasons = array();
 		foreach ($feature['reasons'] as $reason) {
 			$translatedreasons[] = $langs->trans($reason);
