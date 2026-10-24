@@ -16,6 +16,7 @@ class LmdbAttestationVersion extends CommonObject
 	public $covered_scope = '';
 	public $excluded_scope = '';
 	public $active = 0;
+	protected $childtables = array('lmdb_attestation' => array('name'=>'LmdbAttestation', 'fk_element'=>'fk_version', 'parent'=>'lmdb_attestation_version', 'parentkey'=>'fk_version'));
 	public $fields = array(
 		'rowid' => array('type'=>'integer', 'label'=>'ID', 'enabled'=>1, 'visible'=>0, 'position'=>1),
 		'entity' => array('type'=>'integer', 'label'=>'Entity', 'enabled'=>1, 'visible'=>0, 'position'=>2),
@@ -54,6 +55,37 @@ class LmdbAttestationVersion extends CommonObject
 		}
 		$this->entity = (int) $conf->entity;
 		return $this->id > 0 ? $this->updateCommon($user, 1) : $this->createCommon($user, 1);
+	}
+
+	/** Change only the activation state; never overwrite catalogue content. @return int */
+	public function setActive(User $user, $active)
+	{
+		global $conf;
+		if (!isModEnabled('lmdb') || !$user->admin || $user->socid > 0 || !$user->hasRight('lmdb', 'setup', 'configure')) { $this->error = 'NotEnoughPermissions'; return -1; }
+		if (!in_array($active, array(0, 1), true) || $this->id <= 0 || $this->fetch($this->id) <= 0) { $this->error = 'ErrorBadParameters'; return -1; }
+		if (!$this->db->query('UPDATE '.MAIN_DB_PREFIX.$this->table_element.' SET active='.$active.' WHERE rowid='.(int)$this->id.' AND entity='.(int)$conf->entity)) { $this->error = $this->db->lasterror(); return -1; }
+		$this->active = $active;
+		return 1;
+	}
+
+	/** Delete only an unused version, including draft/cancelled attestation links. @return int */
+	public function delete(User $user, $notrigger = 0)
+	{
+		global $conf;
+		if (!isModEnabled('lmdb') || !$user->admin || $user->socid > 0 || !$user->hasRight('lmdb', 'setup', 'configure')) { $this->error = 'NotEnoughPermissions'; return -1; }
+		if ($this->id <= 0) { $this->error = 'ErrorBadParameters'; return -1; }
+		if (!$this->db->begin()) { $this->error = $this->db->lasterror(); return -1; }
+		$res = $this->db->query('SELECT rowid FROM '.MAIN_DB_PREFIX.$this->table_element.' WHERE rowid='.(int)$this->id.' AND entity='.(int)$conf->entity.' FOR UPDATE');
+		if (!$res || !$this->db->num_rows($res)) { $this->error = 'ErrorRecordNotFound'; $this->db->rollback(); return -1; }
+		// Native child-table detection filters the catalogue owner. Even an
+		// anomalous cross-entity attestation link blocks deletion without disclosure.
+		$used = $this->isObjectUsed($this->id, (int)$conf->entity);
+		if ($used !== 0) { $this->error = $used > 0 ? 'LmdbAttestedVersionInUse' : $this->db->lasterror(); if ($used > 0) { $this->errors = array(); } $this->db->rollback(); return -1; }
+		// Catalogue entries own no documents/ECM/links. deleteCommon() would run
+		// that unrelated lifecycle and remove the module directory for an empty ref.
+		if (!$this->db->query('DELETE FROM '.MAIN_DB_PREFIX.$this->table_element.' WHERE rowid='.(int)$this->id.' AND entity='.(int)$conf->entity)) { $this->error = $this->db->lasterror(); $this->db->rollback(); return -1; }
+		if (!$this->db->commit()) { $this->error = $this->db->lasterror(); $this->db->rollback(); return -1; }
+		return 1;
 	}
 
 	/** @return array<int,string>|false Active versions, or the currently selected inactive version. */

@@ -301,3 +301,7 @@ LmdbAttestationHeaderTooHigh=The document header is too large to generate the at
 
 LmdbSupportedDolibarrRange=Target Dolibarr range
 LmdbSupportedDolibarrRangeInfo=v20 through v25 inclusive. Live attestation testing on develop v25 alpha; see test/ATTESTATIONS.md for versions not executed.
+
+LmdbAttestedVersionInUse=This version is used by an attestation and cannot be deleted. You can disable it.
+LmdbAttestedVersionConfirmDelete=Delete version “%s” from the catalogue?
+LmdbAttestedVersionInitiallyInactive=The new version will be created inactive. Enable it from the catalogue after checking its scope.

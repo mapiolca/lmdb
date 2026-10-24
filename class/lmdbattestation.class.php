@@ -167,10 +167,21 @@ class LmdbAttestation extends CommonObject
 		$this->snapshot_data = '';
 		$this->model_pdf = getDolGlobalString('LMDB_ATTESTATION_ADDON_PDF', 'loifinance');
 		if (!$this->db->begin()) { $this->error = $this->db->lasterror(); return -1; }
+		if (!$this->lockAttestedVersion()) { $this->db->rollback(); return -1; }
 		$result = $this->createCommon($user, 1);
 		if ($result <= 0 || (!$notrigger && $this->emitCrud('CREATE', 'create', $user) < 0)) { $this->db->rollback(); return -1; }
 		if (!$this->db->commit()) { $this->db->rollback(); $this->error = $this->db->lasterror(); return -1; }
 		return $this->id;
+	}
+
+	/** Serialize reference creation with catalogue deletion/activation changes. @return bool */
+	private function lockAttestedVersion()
+	{
+		global $conf;
+		$res = $this->db->query('SELECT rowid FROM '.MAIN_DB_PREFIX.'lmdb_attestation_version WHERE rowid='.(int)$this->fk_version.' AND entity='.(int)$conf->entity.' AND active=1 FOR UPDATE');
+		if (!$res) { $this->error = $this->db->lasterror(); return false; }
+		if (!$this->db->num_rows($res)) { $this->error = 'LmdbVersionUnavailable'; return false; }
+		return true;
 	}
 
 	/** Lock and reload before checking state: clients cannot forge status or snapshots. @return LmdbAttestation|false */
@@ -190,6 +201,7 @@ class LmdbAttestation extends CommonObject
 		if (!$this->db->begin()) { $this->error = $this->db->lasterror(); return -1; }
 		$old = $this->lockedOriginal($user);
 		if (!$old || (int) $old->status !== self::STATUS_DRAFT) { $this->error = 'LmdbAttestationLocked'; $this->db->rollback(); return -1; }
+		if (!$this->lockAttestedVersion()) { $this->db->rollback(); return -1; }
 		// Only explicitly writable fields are copied to the loaded object.
 		foreach (array('fk_soc','fk_version','date_attestation','date_acquisition','date_start','client_representative','license_number','note_public','note_private') as $key) { $old->{$key} = $this->{$key}; }
 		$old->oldcopy = new self($this->db);
@@ -207,6 +219,7 @@ class LmdbAttestation extends CommonObject
 		if (!$this->db->begin()) { $this->error = $this->db->lasterror(); return -1; }
 		$old = $this->lockedOriginal($user);
 		if (!$old || (int) $old->status !== self::STATUS_DRAFT || !$old->validateInputs($user)) { $this->error = $old ? $old->error : $this->error; $this->db->rollback(); return -1; }
+		if (!$old->lockAttestedVersion()) { $this->error = $old->error; $this->db->rollback(); return -1; }
 		$signer = getDolGlobalString('LMDB_ATTESTATION_SIGNER');
 		$city = getDolGlobalString('LMDB_ATTESTATION_CITY');
 		$signature = getDolGlobalString('LMDB_ATTESTATION_SIGNATURE');

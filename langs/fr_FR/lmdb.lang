@@ -301,3 +301,7 @@ LmdbAttestationHeaderTooHigh=L’en-tête est trop volumineux pour permettre la 
 
 LmdbSupportedDolibarrRange=Plage Dolibarr ciblée
 LmdbSupportedDolibarrRangeInfo=v20 à v25 incluses. Recette réelle des attestations sur develop v25 alpha ; voir test/ATTESTATIONS.md pour les versions non exécutées.
+
+LmdbAttestedVersionInUse=Cette version est utilisée dans une attestation et ne peut pas être supprimée. Vous pouvez la désactiver.
+LmdbAttestedVersionConfirmDelete=Supprimer la version « %s » du catalogue ?
+LmdbAttestedVersionInitiallyInactive=La nouvelle version sera créée désactivée. Activez-la ensuite depuis le catalogue après vérification de son périmètre.
