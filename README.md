@@ -33,7 +33,7 @@ img/lmdb.png
 
 Dans **Outils → Attestation de conformité Loi Finance**, créer un brouillon en sélectionnant le tiers, la version et la date d’attestation. Le catalogue des versions est administré depuis **Configuration → Attestations** : aucune version n’est déclarée attestable automatiquement.
 
-Les réglages présentent d’abord **Numérotation**, puis **Modèles de document**, avec les colonnes et interrupteurs natifs. Le masque se saisit dans la description du modèle de numérotation, avec l’aide Dolibarr et un exemple calculé sans réserver de référence. Le masque est enregistré par entité ; les références déjà attribuées restent inchangées.
+Les réglages présentent d’abord **Numérotation**, puis **Modèles de document**, avec les colonnes et interrupteurs natifs. Le modèle **Standard** utilise le format fixe `ATLF-{yyyy}-{0000}`. Le modèle **Advanced** permet de saisir un masque dans sa description, avec l’aide Dolibarr et un exemple calculé sans réserver de référence. Le choix s’effectue avec les interrupteurs natifs ; le masque Advanced reste conservé lorsque Standard est sélectionné. Le masque est enregistré par entité ; les références déjà attribuées restent inchangées.
 
 Configurer le représentant de l’émetteur, sa qualité, le lieu et une signature visuelle PNG. Le brouillon porte la référence `(PROV{ID})`. La validation réserve une référence par le modèle de numérotation natif et fige les informations légales du tiers, de l’émetteur, de la version et la signature. La signature visuelle n’est pas une signature électronique cryptographique. Une attestation validée est immuable ; elle peut être annulée, puis remplacée par une nouvelle attestation.
 
@@ -47,7 +47,7 @@ Les permissions lecture, écriture, validation, annulation, génération, envoi,
 
 Les fichiers joints sont limités aux PDF, contrôlés par MIME. L’API REST native expose les brouillons, validation, annulation et génération, avec les mêmes règles métier. Un export natif est déclaré. Les données légales figées dans `snapshot_data` constituent un instantané historique explicite ; les relations vivantes restent `fk_soc` et `fk_version`.
 
-Après mise à jour, réactiver LMDB dans chaque entité concernée pour installer les trois nouvelles tables, actualiser droits/menus et déclarer les événements, modèles et partages. L’initialisation conserve les réglages et modèles personnalisés existants. Les validations exécutées et leurs limites sont détaillées dans [test/ATTESTATIONS.md](test/ATTESTATIONS.md).
+Après mise à jour, réactiver LMDB dans chaque entité concernée pour installer les trois nouvelles tables, actualiser droits/menus et déclarer les événements, modèles et partages. L’initialisation conserve les réglages et modèles personnalisés existants. À la première mise à jour depuis la préversion 2.0.0 qui ne proposait qu’un modèle configurable, un masque personnalisé déjà enregistré sélectionne Advanced ; les choix suivants sont conservés sans migration répétée. Les validations exécutées et leurs limites sont détaillées dans [test/ATTESTATIONS.md](test/ATTESTATIONS.md).
 
 ### Programmation des emailings natifs
 

@@ -43,7 +43,7 @@ Contrats examinés dans `htdocs/core/` : `CommonObject` (CRUD, validation, index
 
 Déploiement du code effectué via le navigateur intégré et cPanel ControlGit : dépôt **DEVELOP - LMDB**, branche `feat/attestations-conformite-loi-finance`, dans le répertoire du module servi par develop. L’état initial était la branche `fix/v24-autosend-invoice-disabled`, commit `02be1b77fda5fd41cea9f5f7c589fa2cd184d581`. La bascule de branche a été confirmée par le SHA affiché dans cPanel. Le dépôt étant directement dans le répertoire servi, aucune tâche `.cpanel.yml` supplémentaire n’est nécessaire.
 
-Instance constatée : **Dolibarr 25.0.0-alpha, PHP 8.3.36, Multicompany actif**, entité TEST 1. La révision du core et la version du module tiers Multicompany ne sont pas connues. Le dernier code fonctionnel déployé et vérifié est `64c5b8e90aca584b81b4adf8c5e5f78f36330149` ; les mises à jour documentaires suivantes ne changent pas ces résultats.
+Instance constatée : **Dolibarr 25.0.0-alpha, PHP 8.3.36, Multicompany actif**, entité TEST 1. La révision du core et la version du module tiers Multicompany ne sont pas connues. Le dernier code fonctionnel déployé et vérifié est `efeeefcdb642a4fb7b742c324eda884201ed1e67` ; les mises à jour documentaires suivantes ne changent pas ces résultats.
 
 Essais réels du 24 octobre 2026, dans le navigateur intégré :
 
@@ -70,3 +70,14 @@ Correctif `64c5b8e` du 24 octobre 2026, même instance develop et même PHP que 
 - Modèle PDF désactivé puis réactivé par son interrupteur ; état final actif et modèle par défaut inchangé. Aucun objet créé ni courriel envoyé pendant ce complément de recette. LMDB reste activé.
 - Syntaxe PHP, PHPStan niveau 5 et régression locale réussis. Quatre scénarios supplémentaires exécutent `get_next_value()` natif avec SQLite : masque date/compteur, aperçu répété sans réservation/verrou, code du tiers et exclusion d’une entité inaccessible. Ces scénarios ne prouvent pas les verrous MySQL ni un partage Multicompany réel.
 - Pattern lu dans `htdocs/admin/propal.php` et `core/modules/propale/mod_propale_saphir.php` des sources locales Dolibarr 24.0.1 ; contrat de masque et API également lus au tag 20.0.0 (`697bf01970740a3339cd99cf055b4428fc5e051c`). Les anciennes traductions incluent déjà les codes date dans `GenericMaskCodes`, ce qui évite d’afficher la clé récente `GenericMaskCodes1` brute. Aucun helper natif recopié dans le module.
+
+## Complément de recette — Standard fixe, Advanced configurable
+
+Correctif `efeeefc` du 24 octobre 2026, même instance develop et même PHP :
+
+- Standard est figé sur `ATLF-{yyyy}-{0000}` et Advanced utilise le masque enregistré. Les deux modèles ont un exemple calculé par le core ; seul Advanced présente un champ éditable. Les régressions locales vérifient que le masque Advanced ne modifie pas Standard et que l’objet appelle le modèle sélectionné.
+- Les interrupteurs des modèles reprennent les liens et pictogrammes `switch_on` / `switch_off` de l’administration native des modèles Dolibarr, sans bouton HTML encadré. `ajax_constantonoff()` concerne les constantes ; l’activation documentaire continue à utiliser `addDocumentModel()` / `delDocumentModel()` et la table native, sans constante miroir ni Ajax parallèle.
+- Avant le déploiement, masque temporaire `REC-{yy}-{00000}` enregistré dans l’ancien modèle configurable. Après déploiement et rechargement natif LMDB : Advanced sélectionné et masque conservé, exemple `REC-26-00001`. Standard affiche toujours `ATLF-2026-0002`.
+- Sélection manuelle de Standard, puis deuxième rechargement natif : Standard reste sélectionné malgré le masque Advanced personnalisé. La migration est unique, marquée par la constante d’entité `LMDB_ATTESTATION_NUMBERING_SPLIT`, et ne réinterprète pas les choix suivants. Masque Advanced initial `ATLF-{yyyy}-{0000}` ensuite restauré.
+- Interrupteur documentaire testé avec jeton : désactivation puis réactivation réussies. Action directe `disablepdf` sans jeton refusée par la protection native `CSRFCHECK_WITH_TOKEN` avant mutation. Aucun bouton HTML dans la ligne du modèle documentaire. État final : Standard sélectionné, Advanced désactivé, PDF actif et par défaut, LMDB actif. Aucun courriel ni objet métier créé.
+- Syntaxe, PHPStan niveau 5 et régression native locale réussis ; trois scénarios supplémentaires couvrent la séparation des modèles et leur sélection par l’objet. Les limites MySQL/Multicompany et matrice de versions indiquées plus haut restent applicables.
