@@ -305,3 +305,8 @@ LmdbSupportedDolibarrRangeInfo=v20 through v25 inclusive. Live attestation testi
 LmdbAttestedVersionInUse=This version is used by an attestation and cannot be deleted. You can disable it.
 LmdbAttestedVersionConfirmDelete=Delete version “%s” from the catalogue?
 LmdbAttestedVersionInitiallyInactive=The new version will be created inactive. Enable it from the catalogue after checking its scope.
+
+LmdbFeaturePdfPreview=PDF preview in the banner
+LmdbFeaturePdfPreviewDescription=First-page thumbnail opening the native PDF preview.
+LmdbRequiresImagickPdfPreview=PHP Imagick and permitted PDF conversion are required for native thumbnails.
+LmdbPdfPreviewDisabled=PDF thumbnails are disabled in Dolibarr settings.

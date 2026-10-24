@@ -408,9 +408,33 @@ class LmdbAttestation extends CommonObject
 		$values['NotePublic'] = (string)$loaded->note_public;
 		$data = array('picto'=>img_picto('', $loaded->picto).' <b>'.dol_escape_htmltag($langs->trans('LmdbAttestation')).'</b> '.$loaded->getLibStatut(5));
 		foreach ($values as $label=>$value) {
-			$data[$label] = '<br><b>'.dol_escape_htmltag($langs->trans($label)).' :</b> '.($value !== '' ? nl2br(dol_escape_htmltag((string)$value)) : '—');
+			$data[$label] = '<br><b>'.dol_escape_htmltag($langs->trans($label)).' :</b> '.($value !== '' ? dol_nl2br(dol_escape_htmltag((string)$value, 0, 1)) : '—');
 		}
 		return $data;
+	}
+
+	/** Native Form::showphoto contract for the main PDF's first-page preview.
+	 * @param string $modulepart Document module part
+	 * @param string $imagesize Native image size
+	 * @return array{dir:string,file:string,originalfile:string,altfile:string,email:string,capture:string}
+	 */
+	public function getDataToShowPhoto($modulepart, $imagesize)
+	{
+		global $user;
+		$empty = array('dir'=>'', 'file'=>'', 'originalfile'=>'', 'altfile'=>'', 'email'=>'', 'capture'=>'');
+		if ($modulepart !== 'lmdb' || !$user->hasRight('lmdb', 'lmdbattestation', 'read') || !LmdbCompatibility::isFeatureAvailable('attestation_pdf_preview')) { return $empty; }
+		$loaded = clone $this;
+		if ($this->id <= 0 || $loaded->fetch($this->id) <= 0) { return $empty; }
+		$directory = $loaded->documentDirectory(false);
+		if ($directory === false) { return $empty; }
+		$filename = $loaded->ref.'.pdf';
+		$pdf = $directory.'/'.$filename;
+		$preview = $pdf.'_preview.png';
+		if (!is_file($pdf) || is_link($pdf) || is_link($preview)) { return $empty; }
+		if (!is_file($preview) || filemtime($preview) < filemtime($pdf)) {
+			if (dol_convert_file($pdf, 'png', $preview, '0') <= 0 || !is_file($preview)) { return $empty; }
+		}
+		return array('dir'=>dirname($directory), 'file'=>$loaded->ref.'/'.$filename.'_preview.png', 'originalfile'=>$loaded->ref.'/'.$filename, 'altfile'=>'', 'email'=>'', 'capture'=>'');
 	}
 
 	public function getNomUrl($withpicto = 0, $option = '', $notooltip = 0, $morecss = '', $save_lastsearch_value = -1)

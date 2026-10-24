@@ -305,3 +305,8 @@ LmdbSupportedDolibarrRangeInfo=v20 à v25 incluses. Recette réelle des attestat
 LmdbAttestedVersionInUse=Cette version est utilisée dans une attestation et ne peut pas être supprimée. Vous pouvez la désactiver.
 LmdbAttestedVersionConfirmDelete=Supprimer la version « %s » du catalogue ?
 LmdbAttestedVersionInitiallyInactive=La nouvelle version sera créée désactivée. Activez-la ensuite depuis le catalogue après vérification de son périmètre.
+
+LmdbFeaturePdfPreview=Aperçu PDF dans la bannière
+LmdbFeaturePdfPreviewDescription=Miniature de la première page et ouverture de l’aperçu natif du PDF.
+LmdbRequiresImagickPdfPreview=Extension PHP Imagick et conversion PDF autorisée requises pour les miniatures natives.
+LmdbPdfPreviewDisabled=Les miniatures PDF sont désactivées dans les réglages Dolibarr.

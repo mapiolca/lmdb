@@ -123,10 +123,11 @@ if ($action === 'create' || $action === 'edit') {
 	$versionlabel = '';
 	if ((int)$object->status===0) { if ($version->fetch($object->fk_version)>0) { $versionlabel=$version->version; } }
 	else { try { $snapshot=$object->legalSnapshot(); $versionlabel=$snapshot['version']; } catch (RuntimeException $e) { setEventMessages($langs->trans($e->getMessage()),null,'errors'); } }
-	print '<div class="div-table-responsive-no-min"><table class="border centpercent">';
-	print '<tr><td>'.$langs->trans('LmdbAttestedVersion').'</td><td>'.dol_escape_htmltag($versionlabel).'</td></tr>';
-	foreach (array('date_attestation','date_acquisition','date_start') as $key) { print '<tr><td>'.$langs->trans($object->fields[$key]['label']).'</td><td>'.($object->{$key}?dol_print_date($object->{$key},'day'):'').'</td></tr>'; }
-	print '</table></div>'.dol_get_fiche_end();
+	print '<div class="fichecenter"><div class="fichehalfleft"><div class="underbanner clearboth"></div>';
+	print '<table class="border centpercent tableforfield">';
+	print '<tr><td class="titlefield">'.$langs->trans('LmdbAttestedVersion').'</td><td class="valuefield">'.dol_escape_htmltag($versionlabel).'</td></tr>';
+	foreach (array('date_attestation','date_acquisition','date_start') as $key) { print '<tr><td class="titlefield">'.$langs->trans($object->fields[$key]['label']).'</td><td class="valuefield">'.($object->{$key}?dol_print_date($object->{$key},'day'):'').'</td></tr>'; }
+	print '</table></div></div><div class="clearboth"></div>'.dol_get_fiche_end();
 	print '<div class="tabsAction">';
 	if ($owner) {
 		if ((int)$object->status===0 && $permissiontoadd) { print '<a class="butAction" href="'.$cardurl.'?id='.$id.'&action=edit">'.$langs->trans('Modify').'</a>'; }

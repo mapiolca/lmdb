@@ -353,6 +353,24 @@ class ActionsLmdb
 		$this->results = array('module'=>'lmdb','element'=>'lmdbattestation','table_element'=>'lmdb_attestation','subelement'=>'lmdbattestation','classpath'=>'lmdb/class','classfile'=>'lmdbattestation','classname'=>'LmdbAttestation','dir_output'=>isset($conf->lmdb->multidir_output[$conf->entity]) ? $conf->lmdb->multidir_output[$conf->entity] : '', 'dir_temp'=>'');
 		return 0;
 	}
+	/** Replace the attestation banner icon using the native photo/preview renderer.
+	 * @param array<string,mixed> $parameters Native banner parameters, by-reference values
+	 * @param CommonObject $object Banner object
+	 * @param string $action Page action
+	 * @param HookManager $hookmanager Hook manager
+	 * @return int Native banner continues normally
+	 */
+	public function formDolBanner($parameters, &$object, &$action, $hookmanager)
+	{
+		global $user;
+		if (!($object instanceof LmdbAttestation) || !$user->hasRight('lmdb', 'lmdbattestation', 'read')) { return 0; }
+		$data = $object->getDataToShowPhoto('lmdb', 'small');
+		if ($data['file'] === '' || !array_key_exists('morehtmlleft', $parameters)) { return 0; }
+		$form = new Form($this->db);
+		$photo = $form->showphoto('lmdb', $object, 0, 80, 0, 'photowithmargin photoref', 'small', 1, filemtime($data['dir'].'/'.$data['file']), '', 1);
+		if ($photo !== '') { $parameters['morehtmlleft'] = '<div class="floatleft inline-block valignmiddle divphotoref">'.$photo.'</div>'; }
+		return 0;
+	}
 	/** Called before native file writes: checks permission, owner and actual PDF MIME. */
 	public function overrideUploadOptions($parameters, &$object, &$action, $hookmanager)
 	{
