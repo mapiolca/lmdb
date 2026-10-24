@@ -326,8 +326,8 @@ class LmdbAttestation extends CommonObject
 
 	public function generateDocument($modele, $outputlangs, $hidedetails = 0, $hidedesc = 0, $hideref = 0, $moreparams = null)
 	{
-		global $user;
-		if (!$user->hasRight('lmdb', 'lmdbattestation', 'generate') || $this->fetch($this->id) <= 0 || (int) $this->status !== self::STATUS_VALIDATED || $modele !== 'loifinance') { $this->error = 'LmdbAttestationLocked'; return -1; }
+		global $user, $conf;
+		if (!$user->hasRight('lmdb', 'lmdbattestation', 'generate') || $this->fetch($this->id) <= 0 || (int)$this->entity !== (int)$conf->entity || (int) $this->status !== self::STATUS_VALIDATED || $modele !== 'loifinance') { $this->error = 'LmdbAttestationLocked'; return -1; }
 		require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 		$models = getListOfModels($this->db, 'lmdbattestation');
 		if (!is_array($models) || !isset($models[$modele])) { $this->error = 'LmdbAttestationPdfUnavailable'; return -1; }

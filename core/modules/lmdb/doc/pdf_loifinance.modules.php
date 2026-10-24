@@ -29,7 +29,7 @@ class pdf_loifinance extends CommonDocGenerator
 	public function write_file($object, $outputlangs, $srctemplatepath = '', $hidedetails = 0, $hidedesc = 0, $hideref = 0)
 	{
 		global $user, $langs, $conf;
-		if (!$user->hasRight('lmdb', 'lmdbattestation', 'generate') || (int)$object->status !== LmdbAttestation::STATUS_VALIDATED) { $this->error = 'NotEnoughPermissions'; return 0; }
+		if (!$user->hasRight('lmdb', 'lmdbattestation', 'generate') || (int)$object->entity !== (int)$conf->entity || (int)$object->status !== LmdbAttestation::STATUS_VALIDATED) { $this->error = 'NotEnoughPermissions'; return 0; }
 		try { $data = $object->legalSnapshot(); } catch (RuntimeException $e) { $this->error = $e->getMessage(); return 0; }
 		foreach (array('issuer_name','issuer_address','issuer_zip','issuer_town','issuer_id','signer','signer_role','city','client_name','client_address','client_zip','client_town','client_id','version','date_release','covered_scope','excluded_scope','date_attestation','date_acquisition','date_start','client_representative','license_number') as $required) { if (!array_key_exists($required,$data)) { $this->error='LmdbInvalidSnapshot'; return 0; } }
 		$dir = $object->documentDirectory(true);
