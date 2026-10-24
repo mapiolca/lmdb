@@ -66,6 +66,7 @@ print '<tr class="oddeven"><td class="titlefield">'.$langs->trans('DetectedPhpVe
 print '<tr class="oddeven"><td>'.$langs->trans('DetectedDolibarrVersion').'</td><td>'.(defined('DOL_VERSION') ? dol_escape_htmltag(DOL_VERSION) : $langs->trans('Unknown')).'</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('MinimumPhpVersion').'</td><td>8.0</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('MinimumDolibarrVersion').'</td><td>20.0</td></tr>';
+print '<tr class="oddeven"><td>'.$langs->trans('LmdbSupportedDolibarrRange').'</td><td>'.$langs->trans('LmdbSupportedDolibarrRangeInfo').'</td></tr>';
 print '</table>';
 print '</div>';
 

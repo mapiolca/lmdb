@@ -298,3 +298,6 @@ LmdbFeaturePdfUpload=PDF attachments
 LmdbRequiresFileinfo=PHP Fileinfo is required to inspect actual file types.
 
 LmdbAttestationHeaderTooHigh=The document header is too large to generate the attestation.
+
+LmdbSupportedDolibarrRange=Target Dolibarr range
+LmdbSupportedDolibarrRangeInfo=v20 through v25 inclusive. Live attestation testing on develop v25 alpha; see test/ATTESTATIONS.md for versions not executed.

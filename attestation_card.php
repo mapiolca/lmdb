@@ -103,7 +103,7 @@ if ($id > 0 && in_array($action,array('presend','send'),true)) {
 if ($action === 'create' || $action === 'edit') {
 	if (!$permissiontoadd || ($action === 'edit' && (!$owner || (int)$object->status !== 0))) { accessforbidden(); }
 	llxHeader('',$langs->trans('LmdbNewAttestation'));
-	print load_fiche_titre($langs->trans('LmdbNewAttestation'));
+	print load_fiche_titre($langs->trans('LmdbNewAttestation'),'',$object->picto);
 	print '<form method="post" action="'.$cardurl.'"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="action" value="'.($id>0?'save':'add').'"><input type="hidden" name="id" value="'.(int)$id.'">';
 	print '<div class="div-table-responsive-no-min"><table class="border centpercent">';
 	foreach (array('fk_soc','fk_version','date_attestation','date_acquisition','date_start','client_representative','license_number') as $key) {

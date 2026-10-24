@@ -298,3 +298,6 @@ LmdbFeaturePdfUpload=Fichiers joints PDF
 LmdbRequiresFileinfo=Extension PHP Fileinfo requise pour contrôler le type réel des fichiers.
 
 LmdbAttestationHeaderTooHigh=L’en-tête est trop volumineux pour permettre la génération de l’attestation.
+
+LmdbSupportedDolibarrRange=Plage Dolibarr ciblée
+LmdbSupportedDolibarrRangeInfo=v20 à v25 incluses. Recette réelle des attestations sur develop v25 alpha ; voir test/ATTESTATIONS.md pour les versions non exécutées.
