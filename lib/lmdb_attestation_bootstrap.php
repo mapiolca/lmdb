@@ -29,7 +29,7 @@ if (!isModEnabled('lmdb') || !isModEnabled('societe') || $user->socid > 0) { acc
 $id = GETPOSTINT('id');
 $action = GETPOST('action', 'aZ09');
 $permissiontoread = $user->hasRight('lmdb', 'lmdbattestation', 'read');
-if (empty($lmdbAdminPage) && !$permissiontoread) { accessforbidden(); }
+if (empty($lmdbAdminPage) && (!$permissiontoread || !$user->hasRight('societe','lire'))) { accessforbidden(); }
 $object = new LmdbAttestation($db);
 if (empty($lmdbAdminPage) && $id > 0 && $object->fetch($id) <= 0) { accessforbidden(); }
 if (empty($lmdbAdminPage) && $id > 0 && $object->fetch_thirdparty() <= 0) { accessforbidden(); }
