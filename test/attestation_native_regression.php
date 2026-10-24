@@ -58,7 +58,7 @@ class AttestationTestUser extends User
 	public function hasRight($module,$level1,$level2=null,$default=0) { return $this->allow; }
 }
 // Native helpers use these module/translation globals. No real configuration is touched.
-$conf=(object)array('entity'=>1,'global'=>new stdClass(),'modules'=>array(),'modules_parts'=>array('hooks'=>array(),'substitutions'=>array(),'models'=>array()),'file'=>(object)array('dol_document_root'=>array($core,dirname(__DIR__,2)), 'main_authentication'=>array()),'currency'=>'EUR');
+$conf=(object)array('entity'=>1,'global'=>new stdClass(),'modules'=>array(),'modules_parts'=>array('hooks'=>array(),'substitutions'=>array(),'models'=>array()),'file'=>(object)array('dol_document_root'=>array($core,dirname(__DIR__,2)), 'dol_url_root'=>array('', ''), 'main_authentication'=>array()),'currency'=>'EUR');
 foreach (array('lmdb','societe') as $module) { $conf->{$module}=(object)array('enabled'=>1); $conf->modules[$module]=1; }
 $conf->lmdb->multidir_output=array(1=>DOL_DATA_ROOT.'/lmdb',2=>DOL_DATA_ROOT.'/entity2/lmdb');
 $langs=new Translate('',$conf); $langs->setDefaultLang('fr_FR'); $langs->loadLangs(array('main','errors','other'));
@@ -87,6 +87,28 @@ $object=new LmdbAttestation($db);
 checkAttestation($object->fetch(1)>0,'Native fetch inside business/entity scope');
 checkAttestation($object->socid===$object->fk_soc,'Native thirdparty alias is synchronized after fetch');
 checkAttestation($object->legalSnapshot()['version']==='24.0.2','Frozen snapshot loaded');
+// Only thirdparty hydration is simulated here; object/rights/entity fetching is native.
+class AttestationTooltipFixture extends LmdbAttestation {
+	public function fetch_thirdparty($force_thirdparty_id = 0) {
+		$this->thirdparty = new Societe($this->db); $this->thirdparty->name = 'Client courant'; return 1;
+	}
+}
+$tooltipobject = new AttestationTooltipFixture($db); $tooltipobject->id = 1;
+$conf->global->MAIN_ENABLE_AJAX_TOOLTIP = 1;
+checkAttestation(strpos($tooltipobject->getNomUrl(1), 'classforajaxtooltip') !== false && strpos($tooltipobject->getNomUrl(1), 'lmdbattestation@lmdb') !== false, 'Native Ajax tooltip link resolves the external attestation');
+checkAttestation(strpos($tooltipobject->getNomUrl(1, '', 1), 'classforajaxtooltip') === false, 'Native no-tooltip option is respected');
+$tooltipsnapshot = json_encode(array('schema'=>'1','version'=>'Version figée','client_name'=>'<script>alert(1)</script>','covered_scope'=>'Périmètre figé avec accents'));
+$db->query("UPDATE fixture_lmdb_attestation SET snapshot_data='".$db->escape($tooltipsnapshot)."' WHERE rowid=1");
+$tooltiphtml = implode($tooltipobject->getTooltipContentArray(array('fromajaxtooltip'=>1)));
+checkAttestation(strpos(html_entity_decode($tooltiphtml, ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'Version figée') !== false && strpos(html_entity_decode($tooltiphtml, ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'Périmètre figé avec accents') !== false, 'Tooltip reads frozen version and scope rather than current catalogue values');
+checkAttestation(strpos($tooltiphtml, '<script>') === false && strpos($tooltiphtml, '&lt;script&gt;') !== false, 'Tooltip escapes stored HTML');
+$user->allow = false;
+checkAttestation($tooltipobject->getTooltipContentArray(array()) === array(), 'Administrator without read right cannot retrieve tooltip content');
+$user->allow = true; $conf->entity = 2;
+checkAttestation($tooltipobject->getTooltipContentArray(array()) === array(), 'Tooltip refuses another inaccessible entity');
+$conf->entity = 1;
+$db->query("UPDATE fixture_lmdb_attestation SET snapshot_data='".$db->escape($object->snapshot_data)."' WHERE rowid=1");
+
 $user->allow=false;
 checkAttestation($object->fetch(1)<0,'Administrator without hasRight cannot fetch');
 checkAttestation($object->delete($user)<0,'Administrator without hasRight cannot delete');
@@ -192,6 +214,10 @@ $conf->global->LMDB_ATTESTATION_ADDON = 'mod_lmdbattestation_standard';
 checkAttestation($sample->getNextNumRef($thirdparty) === 'ATLF-'.date('Y', dol_now()).'-0002', 'Object uses the selected fixed Standard model');
 $conf->global->LMDB_ATTESTATION_MASK = 'ATLF-{yyyy}-{0000}';
 if (in_array('--pdf',$argv,true)) {
+	$mysoc = new class($db) extends Societe { public $useLocalTax2 = 0; };
+	if (in_array('--footer-details', $argv, true)) { $conf->global->MAIN_GENERATE_DOCUMENTS_SHOW_FOOT_DETAILS = 1; }
+	if (in_array('--footer-short', $argv, true)) { $conf->global->MAIN_PDF_FREETEXT = 'Texte libre natif court — accents vérifiés.'; }
+	if (in_array('--footer-long', $argv, true)) { $conf->global->MAIN_PDF_FREETEXT = str_repeat("Texte libre natif long avec accents : vérification du retour à la ligne.\n", 12); }
 	require_once $core.'/core/lib/functions2.lib.php';
 	require_once $core.'/core/class/hookmanager.class.php';
 	require_once dirname(__DIR__).'/core/modules/lmdb/doc/pdf_loifinance.modules.php';
@@ -206,7 +232,6 @@ if (in_array('--pdf',$argv,true)) {
 		$stress=json_decode($object->snapshot_data,true);
 		$stress['covered_scope']=str_repeat('Périmètre détaillé avec accents : inaltérabilité, sécurisation, conservation et archivage. ',150);
 		$object->snapshot_data=json_encode($stress,JSON_UNESCAPED_UNICODE);
-		$mysoc=new class($db) extends Societe { public $useLocalTax2=0; };
 		$conf->global->MAIN_PDF_FREETEXT='<p>'.str_repeat('Texte libre de pied de page avec caractères accentués. ',8).'</p>';
 		$conf->global->PDF_ALLOW_HTML_FOR_FREE_TEXT=1;
 		class AttestationPdfFootHook {

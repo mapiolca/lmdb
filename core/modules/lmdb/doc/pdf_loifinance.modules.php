@@ -19,6 +19,8 @@ class pdf_loifinance extends CommonDocGenerator
 	public $emetteur;
 	/** @var Societe */
 	public $recipient;
+	/** @var Societe */
+	public $footerissuer;
 	public $marge_gauche = 15;
 	public $marge_droite = 15;
 	public $marge_haute = 15;
@@ -56,6 +58,9 @@ class pdf_loifinance extends CommonDocGenerator
 			$key = $property === 'idprof1' ? 'issuer_id' : 'issuer_'.$property;
 			$this->emetteur->{$property} = $data[$key];
 		}
+		// Footer uses the native company presentation details; frozen identity wins.
+		$this->footerissuer = isset($mysoc) && $mysoc instanceof Societe ? clone $mysoc : clone $this->emetteur;
+		foreach (array('name','address','zip','town','idprof1') as $property) { $this->footerissuer->{$property} = $this->emetteur->{$property}; }
 		$this->recipient = new Societe($this->db);
 		foreach (array('name','address','zip','town','idprof1') as $property) {
 			$key = $property === 'idprof1' ? 'client_id' : 'client_'.$property;
@@ -77,10 +82,10 @@ class pdf_loifinance extends CommonDocGenerator
 		$start=$this->_pagehead($pdf,$object,$french,true);
 		if ($start > 297-$footer-60) { $this->error='LmdbAttestationHeaderTooHigh'; return 0; }
 		$pdf->SetY($start);
-		$pdf->SetFont('', 'B', 15);
+		$pdf->SetFont('', 'B', 13);
 		$pdf->MultiCell(180, 8, 'Attestation individuelle relative à l’utilisation d’un logiciel ou d’un système de caisse sécurisé',0,'L');
 		$pdf->SetFont('', '', 9);
-		$pdf->MultiCell(180, 6, 'Référence : '.$object->ref.' — Modèle BOI-LETTRE-000242 du 25 mars 2026',0,'L');
+		$pdf->MultiCell(180, 6, 'Modèle BOI-LETTRE-000242 du 25 mars 2026',0,'L');
 		$pdf->Ln(4);
 		$e = static function ($text) { return dol_escape_htmltag((string)$text); };
 		// Use one loaded French Translate for all dates, including long date variants.
@@ -91,20 +96,20 @@ class pdf_loifinance extends CommonDocGenerator
 		$html .= '<p><b>Périmètre couvert :</b><br>'.nl2br($e($data['covered_scope'])).'</p>';
 		$html .= '<p><b>Fonctionnalités non couvertes :</b><br>'.nl2br($e($data['excluded_scope'] !== '' ? $data['excluded_scope'] : 'Aucune exclusion déclarée par l’émetteur.')).'</p>';
 		$html .= '<p>Fait à '.$e($data['city']).', le '.$date($data['date_attestation']).'.</p><p>Signature du représentant légal de l’émetteur :</p>';
-		$this->writeBlocks($pdf, $html, $object, $french, $footer);
+		if (!$this->writeBlocks($pdf, $html, $object, $french, $footer)) { return 0; }
 		if ($pdf->GetY() + 30 > 297 - $footer) { $this->_pagefoot($pdf, $object, $french, 1); $pdf->AddPage(); $pdf->SetY($this->_pagehead($pdf,$object,$french,false)); }
 		$pdf->Image($dir.'/private/signature.png', 18, $pdf->GetY(), 45, 22, 'PNG');
 		$pdf->SetY($pdf->GetY()+26);
-		$this->writeBlocks($pdf, '<p>L’établissement d’une fausse attestation est un délit pénal passible de trois ans d’emprisonnement et de 45 000 € d’amende (article 441-1 du code pénal). L’usage d’une fausse attestation est passible des mêmes peines.</p>', $object, $french, $footer);
+		if (!$this->writeBlocks($pdf, '<p style="font-size:8pt;color:#555555;">L’établissement d’une fausse attestation est un délit pénal passible de trois ans d’emprisonnement et de 45 000 € d’amende (article 441-1 du code pénal). L’usage d’une fausse attestation est passible des mêmes peines.</p>', $object, $french, $footer)) { return 0; }
 		$this->_pagefoot($pdf, $object, $french, 1);
 		$pdf->AddPage();
-		$pdf->SetY($this->_pagehead($pdf,$object,$french,true));
-		$html = '<h2>II. Volet 2 — Entreprise utilisatrice</h2><p>Attestation '.$e($object->ref).' — Dolibarr ERP CRM '.$e($data['version']).'</p>';
+		$pdf->SetY($this->_pagehead($pdf,$object,$french,false));
+		$html = '<h3>II. Volet 2 — Entreprise utilisatrice</h3><p>Attestation '.$e($object->ref).' — Dolibarr ERP CRM '.$e($data['version']).'</p>';
 		$html .= '<p>Je soussigné, <b>'.$e($data['client_representative'] !== '' ? $data['client_representative'] : '________________________________').'</b>, représentant légal de la société <b>'.$e($data['client_name']).'</b> ('.$e($data['client_id']).'), '.$e($data['client_address']).', '.$e($data['client_zip']).' '.$e($data['client_town']).', certifie avoir acquis ou téléchargé le <b>'.$date($data['date_acquisition']).'</b>, auprès de <b>'.$e($data['issuer_name']).'</b>, le logiciel mentionné au volet 1 de cette attestation.</p>';
 		$html .= '<p>J’atteste utiliser ce logiciel pour enregistrer les règlements de mes clients particuliers, conformément à la réglementation fiscale en vigueur, depuis le <b>'.$date($data['date_start']).'</b>.</p><p>Fait à ________________________________, le __________________.</p><p>Signature du représentant légal de l’entreprise utilisatrice :</p><br><br><br><br>';
 		$html .= '<p><b>Les volets 1 et 2 doivent être présentés ensemble à l’administration fiscale. L’attestation n’a de valeur que si le volet 2 est dûment complété et signé par l’entreprise utilisatrice.</b></p>';
-		$html .= '<p>L’établissement d’une fausse attestation est un délit pénal passible de trois ans d’emprisonnement et de 45 000 € d’amende (article 441-1 du code pénal). L’usage d’une fausse attestation est passible des mêmes peines.</p>';
-		$this->writeBlocks($pdf, $html, $object, $french, $footer);
+		$html .= '<p style="font-size:8pt;color:#555555;">L’établissement d’une fausse attestation est un délit pénal passible de trois ans d’emprisonnement et de 45 000 € d’amende (article 441-1 du code pénal). L’usage d’une fausse attestation est passible des mêmes peines.</p>';
+		if (!$this->writeBlocks($pdf, $html, $object, $french, $footer)) { return 0; }
 		$this->_pagefoot($pdf, $object, $french, 0);
 		$file = $dir.'/'.$object->ref.'.pdf';
 		$pdf->Output($file, 'F');
@@ -114,41 +119,70 @@ class pdf_loifinance extends CommonDocGenerator
 		return 1;
 	}
 
-	/** Flow textual blocks with native font measurements. Each page is finalized
-	 * before adding the next one, including long scope paragraphs. No final pass.
+	/** Native HTML rendering retains emphasis and paragraph spacing. Long blocks
+	 * use native text measurements, finalizing each page before adding another.
 	 */
 	private function writeBlocks($pdf, $html, $object, $french, $footer)
 	{
+		$measure = pdf_getInstance(array(210, 2000));
+		$measure->SetMargins(0, 15, 30);
+		$measure->setPrintHeader(false); $measure->setPrintFooter(false);
+		$measure->SetFont(pdf_getPDFFont($french), '', 10);
+		$measure->AddPage();
+		// A tall measurement page prevents a long scope being measured modulo a page.
+		$measure->SetAutoPageBreak(false, 0);
 		$blocks = preg_split('~(?=<(?:p|h[123])(?:>|\s))~u', $html);
 		foreach ($blocks as $block) {
+			if (trim($block) === '') { continue; }
 			$heading = preg_match('~^<h[123]~', $block) === 1;
-			$pdf->SetFont(pdf_getPDFFont($french), $heading ? 'B' : '', $heading ? 12 : 10);
-			$text = dol_html_entity_decode(dol_string_nohtmltag(preg_replace('~<br\s*/?>~i', "\n", $block)), ENT_QUOTES | ENT_HTML5, 'UTF-8', 1);
-			foreach (explode("\n", trim($text)) as $paragraph) {
-				$line = '';
-				$words = preg_split('/\s+/u', $paragraph);
-				$lines = array();
-				foreach ($words as $word) {
-					$candidate=$line === '' ? $word : $line.' '.$word;
-					if ($line !== '' && $pdf->GetStringWidth($candidate)>175) { $lines[]=$line; $line=''; }
-					if ($pdf->GetStringWidth($word)>175) {
-						foreach (preg_split('//u',$word,-1,PREG_SPLIT_NO_EMPTY) as $character) {
-							if ($pdf->GetStringWidth($line.$character)>175) { $lines[]=$line; $line=''; }
-							$line.=$character;
-						}
-					} else { $line.=($line === '' ? '' : ' ').$word; }
+			$block = preg_replace('~<(h[123])>~', '<$1 style="font-size:12pt;color:#263c5c;">', $block);
+			$pdf->SetFont(pdf_getPDFFont($french), '', 10);
+			$measure->SetFont(pdf_getPDFFont($french), '', 10);
+			$height = pdfGetHeightForHtmlContent($measure, $block) + 3;
+			$clientsignature = strpos($block, 'Signature du représentant légal de l’entreprise utilisatrice') !== false;
+			if ($clientsignature) { $height = max($height, 35); }
+			if (strpos($block, 'Signature du représentant légal de l’émetteur') !== false) { $height = max($height, 40); }
+			$nextstart = $this->marge_haute + 30;
+			if ($height <= $this->page_hauteur - $footer - $nextstart) {
+				if ($pdf->GetY() + $height + ($heading ? 12 : 0) > $this->page_hauteur - $footer) {
+					$this->_pagefoot($pdf, $object, $french, 1); $pdf->AddPage();
+					$pdf->SetY($this->_pagehead($pdf, $object, $french, false));
 				}
-				if (trim($line)!=='') { $lines[]=rtrim($line); }
-				foreach ($lines as $line) {
-					$height = $pdf->getStringHeight(180, $line) + 0.5;
-					if (strpos($line,'Signature du représentant légal de l’entreprise utilisatrice') === 0) { $height=max($height,35); }
-					if ($pdf->GetY()+$height > 297-$footer) { $this->_pagefoot($pdf,$object,$french,1); $pdf->AddPage(); $pdf->SetY($this->_pagehead($pdf,$object,$french,false)); $pdf->SetFont(pdf_getPDFFont($french),$heading?'B':'',$heading?12:10); }
-					$pdf->MultiCell(180,$height,$french->convToOutputCharset($line),0,'L');
+				if ($pdf->GetY() + $height <= $this->page_hauteur - $footer) {
+					$blockstart = $pdf->GetY();
+					$pdf->writeHTMLCell(180, 0, 15, $blockstart, $french->convToOutputCharset($block), 0, 1, false, true, 'L');
+					if ($clientsignature) { $pdf->SetY(max($pdf->GetY(), $blockstart + 35)); }
+					$pdf->Ln(2);
+					continue;
 				}
+			}
+			// Exceptional long catalogue paragraphs remain plain text, wrapped by
+			// TCPDF rather than a second HTML renderer or a reduced font size.
+			$remaining = trim(dol_html_entity_decode(dol_string_nohtmltag(preg_replace('~<br\s*/?>~i', "\n", $block)), ENT_QUOTES | ENT_HTML5, 'UTF-8', 1));
+			while ($remaining !== '') {
+				$available = $this->page_hauteur - $footer - $pdf->GetY() - 3;
+				if ($available < 10) {
+					$this->_pagefoot($pdf, $object, $french, 1); $pdf->AddPage();
+					$pdf->SetY($this->_pagehead($pdf, $object, $french, false));
+					$pdf->SetFont(pdf_getPDFFont($french), '', 10);
+					continue;
+				}
+				$low = 1; $high = mb_strlen($remaining); $fit = 0;
+				while ($low <= $high) {
+					$middle = intdiv($low + $high, 2);
+					if ($pdf->getStringHeight(180, $french->convToOutputCharset(mb_substr($remaining, 0, $middle))) <= $available) { $fit = $middle; $low = $middle + 1; }
+					else { $high = $middle - 1; }
+				}
+				if ($fit <= 0) { $this->error = 'LmdbAttestationFooterTooHigh'; return false; }
+				$chunk = mb_substr($remaining, 0, $fit);
+				if ($fit < mb_strlen($remaining) && mb_strrpos($chunk, ' ') !== false) { $fit = mb_strrpos($chunk, ' '); $chunk = mb_substr($chunk, 0, $fit); }
+				$pdf->MultiCell(180, 0, $french->convToOutputCharset($chunk), 0, 'L');
+				$remaining = ltrim(mb_substr($remaining, $fit));
 			}
 			$pdf->Ln(3);
 		}
-		$pdf->SetFont(pdf_getPDFFont($french),'',10);
+		$pdf->SetFont(pdf_getPDFFont($french), '', 10);
+		return true;
 	}
 
 	/** Native Strato document layout: logo, reference/date and address frames.
@@ -221,7 +255,7 @@ class pdf_loifinance extends CommonDocGenerator
 		$break = $pdf->getAutoPageBreak();
 		$margin = $pdf->getBreakMargin();
 		$pdf->SetAutoPageBreak(false, 0);
-		$height = pdf_pagefoot($pdf, $outputlangs, 'MAIN_PDF_FREETEXT', $this->emetteur, 15, 15, 297, $object, 1, $hidefreetext, 210);
+		$height = pdf_pagefoot($pdf, $outputlangs, 'MAIN_PDF_FREETEXT', $this->footerissuer, $this->marge_basse, $this->marge_gauche, $this->page_hauteur, $object, getDolGlobalInt('MAIN_GENERATE_DOCUMENTS_SHOW_FOOT_DETAILS', 0), $hidefreetext, $this->page_largeur);
 		$pdf->SetAutoPageBreak($break, $margin);
 		return $height;
 	}

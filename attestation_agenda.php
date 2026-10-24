@@ -15,6 +15,8 @@ global $db, $conf, $user, $langs, $hookmanager, $object, $form, $formfile, $form
 global $id, $action;
 
 require __DIR__.'/lib/lmdb_attestation_bootstrap.php';
+// v21+ includes the native personal preference; v20 uses the global setting.
+$leftcolumn = LmdbCompatibility::isDolibarrVersionAtLeast('21.0.0') ? $conf->main_checkbox_left_column : getDolGlobalInt('MAIN_CHECKBOX_LEFT_COLUMN');
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 if ($id<=0 || !isModEnabled('agenda') || (!$user->hasRight('agenda','myactions','read') && !$user->hasRight('agenda','allactions','read'))) { accessforbidden(); }
 require_once DOL_DOCUMENT_ROOT.'/comm/action/class/actioncomm.class.php';
@@ -49,15 +51,21 @@ print dol_get_fiche_end();
 print '<form method="get" action="'.$_SERVER['PHP_SELF'].'"><input type="hidden" name="id" value="'.$id.'">';
 print_barre_liste($langs->trans('Events'),$page,$_SERVER['PHP_SELF'],$param,$sortfield,$sortorder,'',$db->num_rows($res),$total,'',0,'','',$limit);
 print '<div class="div-table-responsive"><table class="tagtable liste centpercent"><tr class="liste_titre_filter">';
+if ($leftcolumn) { print '<td class="liste_titre maxwidthsearch center actioncolumn">'.$form->showFilterButtons('left').'</td>'; }
 foreach ($columns as $key=>$label) {
 	print '<td>';
 	if ($key==='a.label') { print '<input name="search_label" class="flat maxwidth150" value="'.dol_escape_htmltag($search_label).'">'; }
 	if ($key==='a.datep') { print $form->selectDate($search_date?:'','search_date',0,0,1,'',1,0); }
 	print '</td>';
 }
-print '<td>'.$form->showFilterButtons().'</td></tr><tr class="liste_titre">';
+print '<td></td>'; // Linked object filter.
+if (!$leftcolumn) { print '<td class="liste_titre maxwidthsearch center actioncolumn">'.$form->showFilterButtons().'</td>'; }
+print '</tr><tr class="liste_titre">';
+if ($leftcolumn) { print '<td class="center maxwidthsearch actioncolumn"></td>'; }
 foreach ($columns as $key=>$label) { print_liste_field_titre($langs->trans($label),$_SERVER['PHP_SELF'],$key,'',$param,'',$sortfield,$sortorder); }
-print '<th>'.$langs->trans('LinkedObject').'</th></tr>';
+print '<th>'.$langs->trans('LinkedObject').'</th>';
+if (!$leftcolumn) { print '<td class="center maxwidthsearch actioncolumn"></td>'; }
+print '</tr>';
 $num=0;
 while (is_object($row=$db->fetch_object($res))) {
 	$num++;
@@ -66,8 +74,12 @@ while (is_object($row=$db->fetch_object($res))) {
 	$event->userassigned=array($user->id=>array('id'=>$user->id,'transparency'=>0));
 	$owneruser=new User($db); $owneruser->id=$row->fk_user_action; $owneruser->lastname=$row->lastname; $owneruser->firstname=$row->firstname;
 	$contact=new Contact($db); $contact->id=$row->contact_id; $contact->lastname=$row->contact_lastname; $contact->firstname=$row->contact_firstname;
-	print '<tr class="oddeven"><td>'.$event->getNomUrl(1,0,'','',0,1).'</td><td>'.dol_print_date($db->jdate($row->datep),'dayhour').'</td><td>'.($owneruser->id?$owneruser->getNomUrl(1,'',0,0,0,1):'').'</td><td>'.dol_escape_htmltag($event->getTypeLabel()).'</td><td>'.dol_escape_htmltag($row->label).'</td><td>'.($contact->id?$contact->getNomUrl(1,'',0,'',1):'').'</td><td>'.$event->getLibStatut(5).'</td><td>'.$object->getNomUrl(1).'</td></tr>';
+	print '<tr class="oddeven">';
+	if ($leftcolumn) { print '<td class="nowrap center actioncolumn"></td>'; }
+	print '<td>'.$event->getNomUrl(1,0,'','',0,1).'</td><td>'.dol_print_date($db->jdate($row->datep),'dayhour').'</td><td>'.($owneruser->id?$owneruser->getNomUrl(1,'',0,0,0,1):'').'</td><td>'.dol_escape_htmltag($event->getTypeLabel()).'</td><td>'.dol_escape_htmltag($row->label).'</td><td>'.($contact->id?$contact->getNomUrl(1,'',0,'',1):'').'</td><td>'.$event->getLibStatut(5).'</td><td>'.$object->getNomUrl(1).'</td>';
+	if (!$leftcolumn) { print '<td class="nowrap center actioncolumn"></td>'; }
+	print '</tr>';
 }
-if (!$num) { print '<tr class="oddeven"><td colspan="8"><span class="opacitymedium">'.$langs->trans('NoRecordFound').'</span></td></tr>'; }
+if (!$num) { print '<tr class="oddeven"><td colspan="9"><span class="opacitymedium">'.$langs->trans('NoRecordFound').'</span></td></tr>'; }
 print '</table></div></form>';
 llxFooter(); $db->close();

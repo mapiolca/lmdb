@@ -358,9 +358,76 @@ class LmdbAttestation extends CommonObject
 		return $result;
 	}
 
+	/** Native Ajax tooltip, reloaded through the same business access scope.
+	 * @param array<string,mixed> $params Native tooltip parameters
+	 * @return array<string,string> Escaped HTML consumed by CommonObject
+	 */
+	public function getTooltipContentArray($params)
+	{
+		global $user, $langs;
+		if (!$user->hasRight('lmdb', 'lmdbattestation', 'read')) { return array(); }
+		$loaded = clone $this;
+		if ($this->id <= 0 || $loaded->fetch($this->id) <= 0 || $loaded->fetch_thirdparty() <= 0) { return array(); }
+		$langs->loadLangs(array('lmdb@lmdb', 'companies', 'other', 'dict'));
+		$snapshot = array();
+		if ((int)$loaded->status !== self::STATUS_DRAFT) {
+			try { $snapshot = $loaded->legalSnapshot(); }
+			catch (RuntimeException $e) { return array('error'=>dol_escape_htmltag($langs->trans($e->getMessage()))); }
+		}
+		$values = array('Ref'=>$loaded->ref, 'ThirdParty'=>$snapshot['client_name'] ?? $loaded->thirdparty->name);
+		if ($snapshot) {
+			$values['LmdbAttestedVersion'] = $snapshot['version'] ?? '';
+			$values['LmdbReleaseDate'] = (int)($snapshot['date_release'] ?? 0) > 0 ? dol_print_date((int)$snapshot['date_release'], 'day') : '';
+		} else {
+			// A shared draft may expose its attached version, never another catalogue entry.
+			$res = $this->db->query('SELECT version,date_release,covered_scope,excluded_scope FROM '.MAIN_DB_PREFIX.'lmdb_attestation_version WHERE rowid='.(int)$loaded->fk_version.' AND entity='.(int)$loaded->entity);
+			if (!$res || !is_object($release = $this->db->fetch_object($res))) { return array(); }
+			$values['LmdbAttestedVersion'] = $release->version;
+			$values['LmdbReleaseDate'] = dol_print_date($this->db->jdate($release->date_release), 'day');
+			$snapshot['covered_scope'] = $release->covered_scope;
+			$snapshot['excluded_scope'] = $release->excluded_scope;
+		}
+		foreach (array('date_attestation'=>'LmdbAttestationDate', 'date_acquisition'=>'LmdbAcquisitionDate', 'date_start'=>'LmdbUseStartDate', 'date_creation'=>'DateCreation', 'date_validation'=>'DateValidation') as $key=>$label) {
+			$values[$label] = $loaded->{$key} ? dol_print_date($loaded->{$key}, 'day') : '';
+		}
+		$values['LmdbClientRepresentative'] = $snapshot['client_representative'] ?? $loaded->client_representative;
+		$values['LmdbLicenseNumber'] = $snapshot['license_number'] ?? $loaded->license_number;
+		if (isset($snapshot['issuer_name'])) {
+			$values['LmdbIssuerSettings'] = $snapshot['issuer_name'];
+			$values['Address'] = implode(', ', array($snapshot['issuer_address'] ?? '', trim(($snapshot['issuer_zip'] ?? '').' '.($snapshot['issuer_town'] ?? ''))));
+			$values['ProfId1'] = $snapshot['issuer_id'] ?? '';
+			$values['LmdbIssuerRepresentative'] = $snapshot['signer'] ?? '';
+			$values['LmdbSignerRole'] = $snapshot['signer_role'] ?? '';
+			$values['Town'] = $snapshot['city'] ?? '';
+		}
+		$values['LmdbCoveredScope'] = $snapshot['covered_scope'] ?? '';
+		$values['LmdbExcludedScope'] = $snapshot['excluded_scope'] ?? '';
+		if (isset($snapshot['client_address'])) {
+			$values['ThirdParty'] .= "\n".$snapshot['client_address']."\n".trim(($snapshot['client_zip'] ?? '').' '.($snapshot['client_town'] ?? ''))."\n".($snapshot['client_id'] ?? '');
+		}
+		$values['NotePublic'] = (string)$loaded->note_public;
+		$data = array('picto'=>img_picto('', $loaded->picto).' <b>'.dol_escape_htmltag($langs->trans('LmdbAttestation')).'</b> '.$loaded->getLibStatut(5));
+		foreach ($values as $label=>$value) {
+			$data[$label] = '<br><b>'.dol_escape_htmltag($langs->trans($label)).' :</b> '.($value !== '' ? nl2br(dol_escape_htmltag((string)$value)) : '—');
+		}
+		return $data;
+	}
+
 	public function getNomUrl($withpicto = 0, $option = '', $notooltip = 0, $morecss = '', $save_lastsearch_value = -1)
 	{
-		return '<a class="'.dol_escape_htmltag($morecss).'" href="'.dol_buildpath('/lmdb/attestation_card.php', 1).'?id='.(int) $this->id.'">'.($withpicto ? img_picto('', $this->picto).' ' : '').dol_escape_htmltag($this->ref).'</a>';
+		global $conf, $user, $langs;
+		$attributes = '';
+		if (!$notooltip && empty($conf->dol_no_mouse_hover) && $user->hasRight('lmdb', 'lmdbattestation', 'read')) {
+			if (getDolGlobalInt('MAIN_ENABLE_AJAX_TOOLTIP')) {
+				$morecss .= ' classforajaxtooltip';
+				$attributes = ' title="tocomplete" data-params="'.dol_escape_htmltag(json_encode(array('id'=>(int)$this->id, 'objecttype'=>'lmdbattestation@lmdb'))).'"';
+			} else {
+				// No extra per-row queries when native Ajax tooltips are disabled.
+				$morecss .= ' classfortooltip';
+				$attributes = ' title="'.dol_escape_htmltag($this->ref.' - '.$this->getLibStatut(0)).'"';
+			}
+		}
+		return '<a class="'.dol_escape_htmltag(trim($morecss)).'"'.$attributes.' href="'.dol_buildpath('/lmdb/attestation_card.php', 1).'?id='.(int) $this->id.'">'.($withpicto ? img_picto('', $this->picto).' ' : '').($withpicto == 2 ? '' : dol_escape_htmltag($this->ref)).'</a>';
 	}
 	public function getLibStatut($mode = 0) { return $this->LibStatut($this->status, $mode); }
 	public function LibStatut($status, $mode = 0)

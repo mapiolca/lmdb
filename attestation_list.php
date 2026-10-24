@@ -15,6 +15,8 @@ global $db, $conf, $user, $langs, $hookmanager, $object, $form, $formfile, $form
 global $id, $action;
 
 require __DIR__.'/lib/lmdb_attestation_bootstrap.php';
+// v21+ includes the native personal preference; v20 uses the global setting.
+$leftcolumn = LmdbCompatibility::isDolibarrVersionAtLeast('21.0.0') ? $conf->main_checkbox_left_column : getDolGlobalInt('MAIN_CHECKBOX_LEFT_COLUMN');
 $hookmanager->initHooks(array('lmdbattestationlist'));
 $contextpage='lmdbattestationlist';
 $varpage=$contextpage;
@@ -78,9 +80,10 @@ llxHeader('',$langs->trans('LmdbAttestationList'));
 print '<form method="post" id="searchFormList" action="'.$_SERVER['PHP_SELF'].'"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="sortfield" value="'.$sortfield.'"><input type="hidden" name="sortorder" value="'.$sortorder.'">';
 $new=$user->hasRight('lmdb','lmdbattestation','write')?dolGetButtonTitle($langs->trans('LmdbNewAttestation'),'','fa fa-plus-circle',dol_buildpath('/lmdb/attestation_card.php',1).'?action=create'):'';
 print_barre_liste($langs->trans('LmdbAttestationList'),$page,$_SERVER['PHP_SELF'],$param,$sortfield,$sortorder,'',$db->num_rows($res),$total,$object->picto,0,$new,'', $limit);
-$selectedfields=$form->multiSelectArrayWithCheckbox('selectedfields',$arrayfields,$varpage,$conf->main_checkbox_left_column,1);
+$selectedfields=$form->multiSelectArrayWithCheckbox('selectedfields',$arrayfields,$varpage,$leftcolumn,1);
 $visible=array_filter($arrayfields,static function ($field) { return !empty($field['checked']); });
 print '<div class="div-table-responsive"><table class="tagtable liste centpercent"><tr class="liste_titre_filter">';
+if ($leftcolumn) { print '<td class="liste_titre maxwidthsearch center actioncolumn">'.$form->showFilterButtons('left').'</td>'; }
 foreach ($visible as $key=>$field) {
 	print '<td>';
 	if ($key==='t.ref') { print '<input class="flat maxwidth100" type="text" name="search_ref" value="'.dol_escape_htmltag($search_ref).'">'; }
@@ -91,9 +94,12 @@ foreach ($visible as $key=>$field) {
 	if ($key==='t.entity') { print $form->multiselectarray('search_entity',$entities,array_map('strval',$selectedentities),0,0,'minwidth150'); }
 	print '</td>';
 }
-print '<td class="liste_titre center">'.$form->showFilterButtons().'</td></tr><tr class="liste_titre">';
+if (!$leftcolumn) { print '<td class="liste_titre maxwidthsearch center actioncolumn">'.$form->showFilterButtons().'</td>'; }
+print '</tr><tr class="liste_titre">';
+if ($leftcolumn) { print getTitleFieldOfList($selectedfields, 0, $_SERVER['PHP_SELF'], '', '', '', '', $sortfield, $sortorder, 'center maxwidthsearch'); }
 foreach ($visible as $key=>$field) { print_liste_field_titre($langs->trans($field['label']),$_SERVER['PHP_SELF'],$key,'',$param,'',$sortfield,$sortorder); }
-print '<th class="center">'.$selectedfields.'</th></tr>';
+if (!$leftcolumn) { print getTitleFieldOfList($selectedfields, 0, $_SERVER['PHP_SELF'], '', '', '', '', $sortfield, $sortorder, 'center maxwidthsearch'); }
+print '</tr>';
 $num=0;
 while (is_object($row=$db->fetch_object($res))) {
 	$num++;
@@ -102,6 +108,7 @@ while (is_object($row=$db->fetch_object($res))) {
 	$snapshot=json_decode((string)$row->snapshot_data,true);
 	$versionlabel=is_array($snapshot)&&isset($snapshot['version'])?$snapshot['version']:$row->version;
 	print '<tr class="oddeven">';
+	if ($leftcolumn) { print '<td class="nowrap center actioncolumn"></td>'; }
 	foreach ($visible as $key=>$field) {
 		print '<td'.($key==='t.entity'?' align="center"':'').'>';
 		if ($key==='t.ref') { print $line->getNomUrl(1); }
@@ -112,7 +119,8 @@ while (is_object($row=$db->fetch_object($res))) {
 		if ($key==='t.entity') { print '<div class="refidno multicompany-entity-card-container"><span class="fa fa-globe"></span><span class="multiselect-selected-title-text">'.dol_escape_htmltag($entities[$row->entity]).'</span></div>'; }
 		print '</td>';
 	}
-	print '<td></td></tr>';
+	if (!$leftcolumn) { print '<td class="nowrap center actioncolumn"></td>'; }
+	print '</tr>';
 }
 if (!$num) { print '<tr class="oddeven"><td colspan="'.(count($visible)+1).'"><span class="opacitymedium">'.$langs->trans('NoRecordFound').'</span></td></tr>'; }
 print '</table></div></form>'; llxFooter(); $db->close();
