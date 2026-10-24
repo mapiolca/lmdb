@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 2.0.0 - 2026-10-24
+
+- Ajout des attestations individuelles de conformité Loi Finance : catalogue de versions, brouillons, validation avec instantané légal, annulation et PDF fiscal à deux volets.
+- Intégration aux menus Outils, fichiers joints, Agenda et Notifications natifs, modèles de courriel dédiés, numérotation, permissions, export et API REST.
+- Documents et partages Multicompany rattachés à l’entité propriétaire ; signature PNG privée et protection contre le rejeu des envois.
+- Mise à jour : réactiver LMDB par entité pour installer les tables et actualiser les déclarations natives, puis configurer les versions attestables et l’émetteur. Les réglages existants sont conservés.
+
 ## 1.2.2 - 2026-09-11
 
 - Désactivation de l’envoi automatique LMDB des factures récurrentes dès Dolibarr v24, préversions comprises, au profit du mécanisme natif ; maintien du traitement LMDB en v20–v23.

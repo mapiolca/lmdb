@@ -1,0 +1,10 @@
+<?php
+/** Third-party Multicompany contract used for entity labels. Verify on instance. */
+class Entity
+{
+	/** @var string */
+	public $label;
+	public function __construct($db) {}
+	/** @return int */
+	public function fetch($id) {}
+}

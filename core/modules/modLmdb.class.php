@@ -29,6 +29,8 @@ require_once __DIR__.'/../../class/lmdbcompatibility.class.php';
  */
 class modLmdb extends DolibarrModules
 {
+	/** @var string Module licensing metadata. */
+	public $license;
 	/**
 	 * Constructor.
 	 *
@@ -36,19 +38,20 @@ class modLmdb extends DolibarrModules
 	 */
 	public function __construct($db)
 	{
-		global $conf;
+		global $conf, $user;
 
 		$this->db = $db;
 		$this->numero = 450050;
 		$this->rights_class = 'lmdb';
 		$this->family = 'Les Métiers du Bâtiment';
-		$this->module_position = 90;
+		$this->module_position = '90';
 		$this->name = preg_replace('/^mod/i', '', get_class($this));
 		$this->description = 'LmdbModuleDescription';
 		$this->descriptionlong = 'LmdbModuleDescriptionLong';
 		$this->editor_name = 'Les Métiers du Bâtiment';
 		$this->editor_url = 'https://lesmetiersdubatiment.fr';
-		$this->version = '1.2.2';
+		$this->version = '2.0.0';
+		$this->license = 'GPL-3.0-or-later';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'lmdb@lmdb';
 
@@ -64,20 +67,17 @@ class modLmdb extends DolibarrModules
 			'theme' => 0,
 			'css' => array(),
 			'js' => array(),
-			'hooks' => array(
-				'mailingcard',
-				'pdfgeneration',
-			),
+			'hooks' => array('data' => array('mailingcard', 'pdfgeneration', 'notification', 'emailtemplates', 'main', 'fileupload', 'fileslib', 'elementproperties', 'multicompanyexternalmodulesharing', 'multicompanyexternalmodules', 'multicompanysharingoptions'), 'entity' => '0'),
 			'moduleforexternal' => 0,
 			'websitetemplates' => 0,
 			'captcha' => 0,
 		);
 
-		$this->dirs = array('/lmdb/temp');
+		$this->dirs = array('/lmdb/temp', '/lmdb/lmdbattestation', '/lmdb/attestation_settings');
 		$this->config_page_url = array('setup.php@lmdb');
 
 		$this->hidden = 0;
-		$this->depends = array('modFacture');
+		$this->depends = array('modFacture', 'modSociete');
 		$this->requiredby = array();
 		$this->conflictwith = array();
 		$this->langfiles = array('lmdb@lmdb');
@@ -132,6 +132,35 @@ class modLmdb extends DolibarrModules
 		$this->rights[$r][1] = 'LmdbPermissionConfigure';
 		$this->rights[$r][4] = 'setup';
 		$this->rights[$r][5] = 'configure';
+
+
+		foreach (array('read','write','validate','cancel','generate','send','delete','export','api') as $right) {
+			$r++;
+			$this->rights[$r][0] = $this->numero * 100 + $r;
+			$this->rights[$r][1] = 'LmdbAttestationPermission_'.$right;
+			$this->rights[$r][4] = 'lmdbattestation';
+			$this->rights[$r][5] = $right;
+		}
+		$menus = array(
+			array('LmdbAttestationMenu', '/lmdb/attestation_list.php', 'read', ''),
+			array('LmdbNewAttestation', '/lmdb/attestation_card.php?action=create', 'write', ',fk_leftmenu=lmdbattestation'),
+			array('LmdbAttestationList', '/lmdb/attestation_list.php', 'read', ',fk_leftmenu=lmdbattestation'),
+		);
+		foreach ($menus as $index=>$menu) {
+			$this->menu[] = array('fk_menu'=>'fk_mainmenu=tools'.$menu[3], 'type'=>'left', 'titre'=>$menu[0], 'mainmenu'=>'tools', 'leftmenu'=>$index === 0 ? 'lmdbattestation' : 'lmdbattestation'.$index, 'url'=>$menu[1], 'langs'=>'lmdb@lmdb', 'position'=>450050+$index, 'enabled'=>'isModEnabled("lmdb") && isModEnabled("societe")', 'perms'=>'$user->hasRight("lmdb", "lmdbattestation", "read")'.($menu[2] === 'write' ? ' && $user->hasRight("lmdb", "lmdbattestation", "write")' : ''), 'target'=>'', 'user'=>0);
+		}
+		$this->export_code[1] = 'lmdbattestation';
+		$this->export_label[1] = 'LmdbAttestationList';
+		$this->export_permission[1] = array(array('lmdbattestation', 'export'));
+		$this->export_TypeFields_array[1] = array('t.ref'=>'Ref','t.date_attestation'=>'Date','s.nom'=>'Text','t.status'=>'Numeric','t.date_creation'=>'Date','t.license_number'=>'Text');
+		$this->export_fields_array[1] = array('t.ref'=>'Ref','s.nom'=>'ThirdParty','t.date_attestation'=>'LmdbAttestationDate','t.status'=>'Status','t.date_creation'=>'DateCreation','t.license_number'=>'LmdbLicenseNumber');
+		$this->export_sql_start[1] = 'SELECT DISTINCT ';
+		$this->export_sql_end[1] = ' FROM '.MAIN_DB_PREFIX.'lmdb_attestation t INNER JOIN '.MAIN_DB_PREFIX.'societe s ON s.rowid=t.fk_soc WHERE 1=0';
+		if (isModEnabled('lmdb') && isset($user) && $user instanceof User && $user->hasRight('lmdb', 'lmdbattestation', 'read') && $user->hasRight('lmdb', 'lmdbattestation', 'export')) {
+			require_once __DIR__.'/../../class/lmdbattestation.class.php';
+			$this->export_sql_end[1] = ' FROM '.MAIN_DB_PREFIX.'lmdb_attestation t INNER JOIN '.MAIN_DB_PREFIX.'societe s ON s.rowid=t.fk_soc WHERE '.LmdbAttestation::scopeSql($this->db, $user);
+		}
+
 
 		if (!isModEnabled('lmdb')) {
 			$conf->lmdb = new stdClass();
@@ -198,7 +227,10 @@ class modLmdb extends DolibarrModules
 			return $result;
 		}
 
-		return $this->migrateLegacyPermission((int) $conf->entity);
+		if ($this->migrateLegacyPermission((int) $conf->entity) <= 0) { return 0; }
+		require_once __DIR__.'/../../class/lmdbattestationinstaller.class.php';
+		if (LmdbAttestationInstaller::install($this->db, (int) $conf->entity) < 0) { $this->error = $this->db->lasterror(); return 0; }
+		return 1;
 	}
 
 	/**
@@ -330,7 +362,7 @@ class modLmdb extends DolibarrModules
 
 		$extrafields = new ExtraFields($this->db);
 		$existing = $extrafields->fetch_name_optionals_label('facture_rec', true, LmdbInvoiceCustomerRef::EXTRAFIELD_CODE);
-		if (is_array($existing) && isset($existing[LmdbInvoiceCustomerRef::EXTRAFIELD_CODE])) {
+		if (isset($existing[LmdbInvoiceCustomerRef::EXTRAFIELD_CODE])) {
 			$result = $extrafields->updateExtraField(
 				LmdbInvoiceCustomerRef::EXTRAFIELD_CODE, 'LmdbRecurringInvoiceCustomerRef', 'varchar', 5, '255', 'facture_rec',
 				0, 0, '', '', 1, '', '1', 'LmdbRecurringInvoiceCustomerRefHelp', '', (string) ((int) $conf->entity),

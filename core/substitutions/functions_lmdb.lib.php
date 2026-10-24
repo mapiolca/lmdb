@@ -23,14 +23,25 @@ require_once __DIR__.'/../../class/lmdbinvoicecustomerref.class.php';
  * Dolibarr calls this function from complete_substitutions_array(), including
  * during PDF note rendering and email/document substitution workflows.
  *
- * @param array<string,mixed> $substitutionarray Substitution values
- * @param Translate           $outputlangs       Output language
+ * @param array<string,mixed>|null $substitutionarray Substitution values
+ * @param Translate|null      $outputlangs       Output language
  * @param mixed               $object            Current business object
  * @param mixed               $parameters        Optional caller parameters
  * @return void
  */
 function lmdb_completesubstitutionarray(&$substitutionarray, $outputlangs, $object = null, $parameters = null)
 {
+	if (is_array($substitutionarray) && $object instanceof LmdbAttestation && $outputlangs instanceof Translate) {
+		global $user;
+		if (!$user->hasRight('lmdb','lmdbattestation','read') || $object->fetch($object->id)<=0) { return; }
+		try { $data=$object->legalSnapshot(); } catch (RuntimeException $e) { return; }
+		$substitutionarray['__LMDB_ATTESTATION_REF__']=$object->ref;
+		$substitutionarray['__LMDB_ATTESTATION_VERSION__']=$data['version'];
+		$substitutionarray['__LMDB_ATTESTATION_DATE__']=dol_print_date($object->date_attestation,'day',false,$outputlangs);
+		$substitutionarray['__LMDB_ATTESTATION_THIRDPARTY__']=$data['client_name'];
+		$substitutionarray['__LMDB_ATTESTATION_URL__']=dol_buildpath('/lmdb/attestation_card.php',2).'?id='.(int)$object->id;
+		return;
+	}
 	if (!is_array($substitutionarray) || !($object instanceof Facture) || !($outputlangs instanceof Translate)) {
 		return;
 	}

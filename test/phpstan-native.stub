@@ -1,0 +1,8 @@
+<?php
+/** The native descriptor accepts structured hooks (data/entity) even though its
+ * v24 PHPDoc only describes a list. No runtime symbols or errors are suppressed. */
+class DolibarrModules
+{
+	/** @var array<string,0|1|list<string>|array{data:list<string>,entity:string}> */
+	public $module_parts;
+}

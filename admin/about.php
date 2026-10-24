@@ -21,22 +21,12 @@
  * \brief      About page for LMDB module.
  */
 
-$res = 0;
-if (!$res && !empty($_SERVER['CONTEXT_DOCUMENT_ROOT'])) {
-	$res = @include $_SERVER['CONTEXT_DOCUMENT_ROOT'].'/main.inc.php';
-}
-if (!$res && !empty($_SERVER['DOCUMENT_ROOT'])) {
-	$res = @include $_SERVER['DOCUMENT_ROOT'].'/main.inc.php';
-}
-if (!$res && file_exists('../../main.inc.php')) {
-	$res = @include '../../main.inc.php';
-}
-if (!$res && file_exists('../../../main.inc.php')) {
-	$res = @include '../../../main.inc.php';
-}
-if (!$res) {
-	die('Include of main fails');
-}
+/** @var DoliDB $db */
+/** @var Translate $langs */
+/** @var User $user */
+global $db, $langs, $user;
+$lmdbAdminPage=true;
+require __DIR__.'/../lib/lmdb_attestation_bootstrap.php';
 
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 require_once dol_buildpath('/lmdb/lib/lmdb.lib.php', 0);
@@ -68,11 +58,11 @@ print '<tr class="oddeven"><td class="titlefield">'.$langs->trans('ModuleName').
 print '<tr class="oddeven"><td>'.$langs->trans('Version').'</td><td>'.dol_escape_htmltag($module->version).'</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('Publisher').'</td><td>'.dol_escape_htmltag($module->editor_name).'</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('Description').'</td><td>'.$langs->trans('LmdbModuleDescriptionLong').'</td></tr>';
-print '<tr class="oddeven"><td>'.$langs->trans('Compatibility').'</td><td>'.$langs->trans('LmdbCompatibilitySummary').'</td></tr>';
-print '<tr class="oddeven"><td>'.$langs->trans('Dependencies').'</td><td>'.$langs->trans('LmdbDependenciesSummary').'</td></tr>';
+print '<tr class="oddeven"><td>'.$langs->trans('Compatibility').'</td><td>'.dol_escape_htmltag('Dolibarr '.implode('.', $module->need_dolibarr_version).'+ / PHP '.implode('.', $module->phpmin).'+').'</td></tr>';
+print '<tr class="oddeven"><td>'.$langs->trans('Dependencies').'</td><td>'.dol_escape_htmltag(implode(', ', $module->depends)).'</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('MainFeatures').'</td><td>'.$langs->trans('LmdbMainFeaturesSummary').'</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('UsefulLinks').'</td><td><a href="https://lesmetiersdubatiment.fr" target="_blank" rel="noopener noreferrer">lesmetiersdubatiment.fr</a></td></tr>';
-print '<tr class="oddeven"><td>'.$langs->trans('License').'</td><td>GPL-3.0-or-later</td></tr>';
+print '<tr class="oddeven"><td>'.$langs->trans('License').'</td><td>'.dol_escape_htmltag($module->license).'</td></tr>';
 print '</table>';
 print '</div>';
 

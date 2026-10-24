@@ -105,7 +105,7 @@ $user = (object) array('id' => 1, 'admin' => 1);
 require __DIR__.'/../core/modules/modLmdb.class.php';
 require __DIR__.'/../class/lmdbinvoiceautosend.class.php';
 $module = new modLmdb($db);
-check($module->version === '1.2.2', 'Descriptor version');
+check($module->version === '2.0.0', 'Descriptor version');
 check(LmdbCompatibility::isRecurringInvoiceAutoSendSupported() === $expected, 'Version boundary');
 check(isset($module->cronjobs[0]) === $expected, 'Invoice cron declaration');
 check(isset($module->cronjobs[1]) && $module->cronjobs[1]['objectname'] === 'LmdbMailingAutoSend', 'Campaign cron preserved');

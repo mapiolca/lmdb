@@ -32,10 +32,13 @@ class ActionsLmdb
 	/** @var array<int,string> */
 	public $errors = array();
 
+	/** @var array<int,string> Native HookManager resets warnings before each call. */
+	public $warnings = array();
+
 	/** @var array<string,mixed> */
 	public $results = array();
 
-	/** @var string */
+	/** @var string|null */
 	public $resprints = '';
 
 	/**
@@ -57,14 +60,14 @@ class ActionsLmdb
 	 * model choice.
 	 *
 	 * @param array<string,mixed> $parameters  Hook parameters
-	 * @param object              $object      Generated business object
+	 * @param CommonObject|null   $object      Generated business object
 	 * @param string              $action      Current action
 	 * @param HookManager         $hookmanager Hook manager
 	 * @return int 0 to continue native PDF generation
 	 */
 	public function beforePDFCreation($parameters, &$object, &$action, $hookmanager)
 	{
-		if (!is_object($object) || !isset($object->element) || (string) $object->element !== 'facture') {
+		if (!is_object($object) || (string) $object->element !== 'facture') {
 			return 0;
 		}
 
@@ -87,7 +90,7 @@ class ActionsLmdb
 	 * Persist the scheduled send date from the native mailing card.
 	 *
 	 * @param array<string,mixed> $parameters Hook parameters
-	 * @param object              $object     Hook object
+	 * @param CommonObject|null   $object     Hook object
 	 * @param string              $action     Current action
 	 * @param HookManager         $hookmanager Hook manager
 	 * @return int 0 when not handled, 1 when handled, -1 on hook error
@@ -127,6 +130,7 @@ class ActionsLmdb
 			return 1;
 		}
 
+		/** @var int|string|false $scheduledAtInput Native invalid dates can return false despite the core PHPDoc. */
 		$scheduledAtInput = GETPOSTDATE(self::SCHEDULED_SEND_FIELD, 'getpost', 'tzuserrel');
 		if ($scheduledAtInput === false) {
 			setEventMessages($langs->trans('LmdbScheduledMailingInvalidDate'), null, 'errors');
@@ -155,7 +159,7 @@ class ActionsLmdb
 	 * Add the scheduling field to the native mailing card.
 	 *
 	 * @param array<string,mixed> $parameters Hook parameters
-	 * @param object              $object     Hook object
+	 * @param CommonObject|null   $object     Hook object
 	 * @param string              $action     Current action
 	 * @param HookManager         $hookmanager Hook manager
 	 * @return int 0 to continue native rendering
@@ -181,7 +185,6 @@ class ActionsLmdb
 		$scheduledAt = is_array($schedule) ? $schedule['scheduled_send_at'] : 0;
 		$startedAt = is_array($schedule) ? $schedule['scheduled_started_at'] : 0;
 		$canSchedule = (!empty($user->admin) || $user->hasRight('mailing', 'valider'))
-			&& (string) $object->messtype === 'email'
 			&& in_array((int) $object->status, array(Mailing::STATUS_DRAFT, Mailing::STATUS_VALIDATED), true)
 			&& $startedAt <= 0;
 
@@ -307,6 +310,95 @@ class ActionsLmdb
 		}
 
 		$this->db->commit();
+		return 1;
+	}
+
+	/** @return array<string,array<string,array<string,mixed>>> Native Multicompany sharing defaults. */
+	public static function getMulticompanySharingDefinition()
+	{
+		$elements = array();
+		foreach (array('lmdbattestation','lmdbattestationnumber') as $element) {
+			$elements[$element] = array('type'=>$element === 'lmdbattestation' ? 'element' : 'objectnumber', 'icon'=>'fa-file-signature', 'lang'=>'lmdb@lmdb', 'tooltip'=>'LmdbAttestationSharingInfo', 'enable'=>'isModEnabled("lmdb")', 'input'=>array('global'=>array('showhide'=>true,'hide'=>true,'del'=>true)));
+		}
+		return array('lmdb'=>array('sharingelements'=>$elements,'sharingmodulename'=>array('lmdbattestation'=>'lmdb','lmdbattestationnumber'=>'lmdb'),'dictionary'=>array()));
+	}
+	public function multicompanyExternalModulesSharing($parameters, &$object, &$action, $hookmanager)
+	{
+		$this->results = self::getMulticompanySharingDefinition(); return 0;
+	}
+	public function multicompanyExternalModuleSharing($parameters, &$object, &$action, $hookmanager)
+	{
+		$this->results = self::getMulticompanySharingDefinition(); return 0;
+	}
+	public function multicompanySharingOptions($parameters, &$object, &$action, $hookmanager)
+	{
+		$this->results = self::getMulticompanySharingDefinition(); return 0;
+	}
+	public function notifsupported($parameters, &$object, &$action, $hookmanager)
+	{
+		$this->results = array('arrayofnotifsupported'=>array('LMDB_ATTESTATION_CREATE','LMDB_ATTESTATION_UPDATE','LMDB_ATTESTATION_DELETE')); return 0;
+	}
+	public function emailElementlist($parameters, &$object, &$action, $hookmanager)
+	{
+		global $langs;
+		$langs->load('lmdb@lmdb');
+		$this->results = array('lmdbattestation_send'=>$langs->trans('LmdbAttestation')); return 0;
+	}
+	/** Resolve the same object identifier for Agenda, native Ajax and linked objects. */
+	public function getElementProperties($parameters, &$object, &$action, $hookmanager)
+	{
+		global $conf;
+		$type = isset($parameters['elementType']) ? $parameters['elementType'] : '';
+		if (!in_array($type, array('lmdbattestation','lmdbattestation@lmdb','lmdbattestation_send'), true)) { return 0; }
+		$this->results = array('module'=>'lmdb','element'=>'lmdbattestation','table_element'=>'lmdb_attestation','subelement'=>'lmdbattestation','classpath'=>'lmdb/class','classfile'=>'lmdbattestation','classname'=>'LmdbAttestation','dir_output'=>isset($conf->lmdb->multidir_output[$conf->entity]) ? $conf->lmdb->multidir_output[$conf->entity] : '', 'dir_temp'=>'');
+		return 0;
+	}
+	/** Called before native file writes: checks permission, owner and actual PDF MIME. */
+	public function overrideUploadOptions($parameters, &$object, &$action, $hookmanager)
+	{
+		global $user, $conf;
+		if (!is_object($object) || !($object instanceof LmdbAttestation)) { return 0; }
+		if (!$user->hasRight('lmdb','lmdbattestation','write') || (int)$object->entity !== (int)$conf->entity || (int)$object->status !== LmdbAttestation::STATUS_VALIDATED) { accessforbidden(); }
+		$dir = $object->documentDirectory(true);
+		if ($dir === false) { accessforbidden(); }
+		foreach ($_FILES as $file) {
+			$temps = is_array($file['tmp_name']) ? $file['tmp_name'] : array($file['tmp_name']);
+			$names = is_array($file['name']) ? $file['name'] : array($file['name']);
+			foreach ($temps as $key=>$temp) {
+				if ($temp === '') { continue; }
+				if (!isset($names[$key]) || strtolower(pathinfo($names[$key],PATHINFO_EXTENSION)) !== 'pdf' || (new finfo(FILEINFO_MIME_TYPE))->file($temp) !== 'application/pdf') { accessforbidden(); }
+			}
+		}
+		$parameters['options']['upload_dir'] = $dir.'/';
+		$parameters['options']['upload_url'] = DOL_URL_ROOT.'/document.php?modulepart=lmdb&entity='.(int)$object->entity.'&file='.rawurlencode($object->ref).'/';
+		$parameters['options']['accept_file_types'] = '/\.pdf$/i';
+		return 0;
+	}
+	/**
+	 * Native generic document access grants module-level rights only. Narrow it
+	 * to the exact object, commercial scope and owner directory here. Returning
+	 * accessallowed=0 is ignored by the core contract, so refusals must terminate.
+	 */
+	public function checkSecureAccess($parameters, &$object, &$action, $hookmanager)
+	{
+		if (!isset($parameters['modulepart']) || $parameters['modulepart'] !== 'lmdb') { return 0; }
+		global $user;
+		require_once __DIR__.'/lmdbattestation.class.php';
+		require_once __DIR__.'/../lib/lmdb_attestation.lib.php';
+		$path = isset($parameters['original_file']) ? $parameters['original_file'] : '';
+		if (strpos($path, '/attestation_settings/') !== false) { accessforbidden(); }
+		global $conf;
+		$entity = isset($parameters['entity']) ? (int)$parameters['entity'] : 0;
+		$root = isset($conf->lmdb->multidir_output[$entity]) ? rtrim($conf->lmdb->multidir_output[$entity], '/') : '';
+		if (!$root || strpos($path, $root.'/') !== 0) { accessforbidden(); }
+		$relative = substr($path, strlen($root)+1);
+		if (!preg_match('~^([^/]+)/.+$~', $relative, $match)) { accessforbidden(); }
+		if ($match[1] === 'temp') { return 0; }
+		$actor = isset($parameters['fuser']) && $parameters['fuser'] instanceof User ? $parameters['fuser'] : $user;
+		$attestation = new LmdbAttestation($this->db);
+		if (!$actor->hasRight('lmdb','lmdbattestation','read') || $actor->socid > 0 || $attestation->fetch(0,$match[1]) <= 0 || (int)$attestation->entity !== (int)$parameters['entity'] || !lmdbAttestationFileBelongsToObject($attestation,$path)) { accessforbidden(); }
+		if (isset($parameters['mode']) && $parameters['mode'] === 'write' && (!$actor->hasRight('lmdb','lmdbattestation','delete') || (int)$attestation->entity !== (int)$conf->entity)) { accessforbidden(); }
+		$this->results = array('original_file'=>$path,'accessallowed'=>1);
 		return 1;
 	}
 }

@@ -2,7 +2,7 @@
 
 Module externe Dolibarr pour Les Métiers du Bâtiment.
 
-Version courante : **1.2.2**.
+Version courante : **2.0.0**.
 
 ## Compatibilité
 
@@ -27,6 +27,24 @@ img/object_lmdb.png
 ```
 
 ## Fonctionnalités
+
+### Attestations individuelles de conformité Loi Finance
+
+Dans **Outils → Attestation de conformité Loi Finance**, créer un brouillon en sélectionnant le tiers, la version et la date d’attestation. Le catalogue des versions est administré depuis **Configuration → Attestations** : aucune version n’est déclarée attestable automatiquement.
+
+Configurer le représentant de l’émetteur, sa qualité, le lieu et une signature visuelle PNG. La validation réserve une référence par le modèle de numérotation natif et fige les informations légales du tiers, de l’émetteur, de la version et la signature. La signature visuelle n’est pas une signature électronique cryptographique. Une attestation validée est immuable ; elle peut être annulée, puis remplacée par une nouvelle attestation.
+
+Le modèle PDF `loifinance` reprend les deux volets du [modèle fiscal BOI-LETTRE-000242 du 25 mars 2026](https://bofip.impots.gouv.fr/bofip/10692-PGP.html/identifiant=BOI-LETTRE-000242-20260325). Le client complète et signe le volet 2 hors ligne ; l’ensemble signé peut être joint en PDF. Les deux volets sont nécessaires. L’activation du module ne constitue pas une certification d’une version de Dolibarr : l’émetteur reste responsable des versions et périmètres qu’il atteste.
+
+La fiche utilise les blocs et onglets natifs Notes, Fichiers joints et Événements/Agenda. Les événements `LMDB_ATTESTATION_CREATE`, `LMDB_ATTESTATION_UPDATE` et `LMDB_ATTESTATION_DELETE` sont configurables dans l’administration native Agenda et Notifications. Le contexte `trigger_reason` distingue création, édition, validation, annulation et document. Aucun second événement Agenda n’est créé manuellement.
+
+L’envoi individuel depuis la fiche utilise `FormMail`, le contrôleur de courriel et le transport SMTP natifs, car il s’agit d’un document choisi par l’utilisateur, sans abonnement Notifications. Les modèles sont de type exact `lmdbattestation_send` et disposent des substitutions `__LMDB_ATTESTATION_REF__`, `__LMDB_ATTESTATION_VERSION__`, `__LMDB_ATTESTATION_DATE__`, `__LMDB_ATTESTATION_THIRDPARTY__` et `__LMDB_ATTESTATION_URL__`. Un registre empêche le rejeu d’une soumission et bloque un envoi interrompu en état « pending » ; vérifier sa livraison avant toute reprise manuelle. Aucun envoi automatique d’attestation ni nouveau cron n’est ajouté.
+
+Les permissions lecture, écriture, validation, annulation, génération, envoi, suppression, export et API sont distinctes. Les utilisateurs externes sont refusés. Les restrictions commerciales du tiers sont appliquées avant pagination. Les partages Multicompany de l’objet et de sa numérotation sont déclarés ; les modifications et envois s’effectuent dans l’entité propriétaire. Les documents restent dans le répertoire de cette entité, y compris pour une consultation depuis une autre entité. La lecture suffit pour télécharger un PDF existant ; la signature privée est protégée.
+
+Les fichiers joints sont limités aux PDF, contrôlés par MIME. L’API REST native expose les brouillons, validation, annulation et génération, avec les mêmes règles métier. Un export natif est déclaré. Les données légales figées dans `snapshot_data` constituent un instantané historique explicite ; les relations vivantes restent `fk_soc` et `fk_version`.
+
+Après mise à jour, réactiver LMDB dans chaque entité concernée pour installer les trois nouvelles tables, actualiser droits/menus et déclarer les événements, modèles et partages. L’initialisation conserve les réglages et modèles personnalisés existants. Les validations exécutées et leurs limites sont détaillées dans [test/ATTESTATIONS.md](test/ATTESTATIONS.md).
 
 ### Programmation des emailings natifs
 
@@ -164,6 +182,7 @@ Les travaux planifiés (fréquence, activation et historique compris), constante
 Les onglets internes disponibles sont :
 
 - Configuration ;
+- Attestations ;
 - Compatibilité ;
 - À propos.
 

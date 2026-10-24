@@ -52,6 +52,12 @@ class LmdbCompatibility
 			&& self::isPhpVersionAtLeast('8.0.0');
 	}
 
+	/** @return bool Attestation baseline, independent of optional Agenda/Notifications. */
+	public static function isAttestationSupported()
+	{
+		return self::isDolibarrVersionAtLeast('20.0.0') && self::isPhpVersionAtLeast('8.0.0') && isModEnabled('societe');
+	}
+
 	/**
 	 * Check Dolibarr version.
 	 *
@@ -249,6 +255,12 @@ class LmdbCompatibility
 			'reasons' => $counterReasons,
 		);
 
+		$reasons = array();
+		if (!self::isDolibarrVersionAtLeast('20.0.0')) { $reasons[] = 'RequiresDolibarr20'; }
+		if (!self::isPhpVersionAtLeast('8.0.0')) { $reasons[] = 'RequiresPhp80'; }
+		if (!isModEnabled('societe')) { $reasons[] = 'LmdbRequiresThirdparty'; }
+		$features['individual_attestations'] = array('code'=>'individual_attestations','label'=>'LmdbFeatureAttestations','description'=>'LmdbFeatureAttestationsDescription','min_dolibarr'=>'20.0.0','core_available_from'=>'20.0.0','module_available_from'=>'20.0.0','min_php'=>'8.0.0','compatibility_check'=>"Dolibarr >= 20; PHP >= 8.0; isModEnabled('societe')",'available'=>self::isAttestationSupported(),'reasons'=>$reasons);
+		$features['attestation_signature_image'] = array_replace($features['individual_attestations'], array('code'=>'attestation_signature_image','label'=>'LmdbFeatureSignature','available'=>self::isAttestationSupported() && function_exists('imagecreatefrompng') && function_exists('imagepng'),'reasons'=>array_merge($reasons,function_exists('imagecreatefrompng') && function_exists('imagepng') ? array() : array('LmdbRequiresGdPng'))));
 		return $features;
 	}
 
