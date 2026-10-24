@@ -10,7 +10,8 @@
 /** @var Form $form */
 /** @var FormFile $formfile */
 /** @var FormActions $formactions */
-global $db, $conf, $user, $langs, $hookmanager, $object, $form, $formfile, $formactions;
+/** @var Societe $mysoc */
+global $db, $conf, $user, $langs, $hookmanager, $object, $form, $formfile, $formactions, $mysoc;
 /** @var int $id */
 /** @var string $action */
 global $id, $action;
@@ -23,7 +24,7 @@ require_once __DIR__.'/../lib/lmdb.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formadmin.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 if (!$user->admin || !$user->hasRight('lmdb','setup','configure')) { accessforbidden(); }
-$settingkeys=array('LMDB_ATTESTATION_SIGNER'=>'LmdbIssuerRepresentative','LMDB_ATTESTATION_SIGNER_ROLE'=>'LmdbSignerRole','LMDB_ATTESTATION_CITY'=>'Town');
+$settingkeys=array('LMDB_ATTESTATION_SIGNER'=>'LmdbIssuerRepresentative','LMDB_ATTESTATION_SIGNER_ROLE'=>'LmdbSignerRole');
 $catalogueversion = new LmdbAttestationVersion($db);
 $versionid=GETPOSTINT('versionid');
 if ($versionid>0 && $catalogueversion->fetch($versionid)<=0) { accessforbidden(); }
@@ -119,8 +120,9 @@ print '</td><td class="center">'.$form->textwithpicto('', $pdfinfo, 1, 'info').'
 print '<div class="info">'.$langs->trans('LmdbAttestationSettingsHelp').'</div>';
 print '<form method="post" enctype="multipart/form-data" action="'.$_SERVER['PHP_SELF'].'"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="action" value="savesettings"><div class="div-table-responsive-no-min"><table class="noborder centpercent"><tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbIssuerSettings').'</td></tr>';
 foreach ($settingkeys as $key=>$label) { print '<tr class="oddeven"><td class="titlefield fieldrequired">'.$langs->trans($label).'</td><td><input class="flat minwidth300" type="text" name="'.$key.'" value="'.dol_escape_htmltag(getDolGlobalString($key)).'" required></td></tr>'; }
+print '<tr class="oddeven"><td class="titlefield fieldrequired">'.$langs->trans('Town').'</td><td>'.dol_escape_htmltag($mysoc->town).'</td></tr>';
 print '<tr class="oddeven"><td>'.$langs->trans('Signature').' (PNG, 2 Mo)</td><td><input type="file" name="signature" accept="image/png">'.(getDolGlobalString('LMDB_ATTESTATION_SIGNATURE')?' '.img_picto($langs->trans('Available'),'tick'):'').'</td></tr></table></div><div class="center"><input class="button" type="submit" value="'.$langs->trans('Save').'"></div></form>';
-$newversion = '<a class="reposition" href="'.$_SERVER['PHP_SELF'].'?action=createversion&token='.newToken().'" title="'.dol_escape_htmltag($langs->trans('Add')).'" aria-label="'.dol_escape_htmltag($langs->trans('Add')).'">'.img_picto($langs->trans('Add'), 'add').'</a>';
+$newversion = dolGetButtonTitle($langs->trans('Add'), '', 'fa fa-plus-circle', $_SERVER['PHP_SELF'].'?action=createversion&token='.newToken());
 print load_fiche_titre($langs->trans('LmdbAttestedVersions'), $newversion);
 $res=$db->query('SELECT rowid,version,date_release,covered_scope,excluded_scope,active FROM '.MAIN_DB_PREFIX.'lmdb_attestation_version WHERE entity='.(int)$conf->entity.' ORDER BY version DESC');
 print '<div class="div-table-responsive-no-min"><table class="noborder centpercent"><tr class="liste_titre"><td>'.$langs->trans('LmdbAttestedVersion').'</td><td>'.$langs->trans('LmdbReleaseDate').'</td><td>'.$langs->trans('Status').'</td><td></td></tr>';

@@ -229,7 +229,8 @@ class LmdbAttestation extends CommonObject
 		if (!$old || (int) $old->status !== self::STATUS_DRAFT || !$old->validateInputs($user)) { $this->error = $old ? $old->error : $this->error; $this->db->rollback(); return -1; }
 		if (!$old->lockAttestedVersion()) { $this->error = $old->error; $this->db->rollback(); return -1; }
 		$signer = getDolGlobalString('LMDB_ATTESTATION_SIGNER');
-		$city = getDolGlobalString('LMDB_ATTESTATION_CITY');
+		// Native company data is scoped to the current owner entity.
+		$city = (string) $mysoc->town;
 		$signature = getDolGlobalString('LMDB_ATTESTATION_SIGNATURE');
 		$root = isset($conf->lmdb->multidir_output[$old->entity]) ? $conf->lmdb->multidir_output[$old->entity] : '';
 		if (!$signer || !getDolGlobalString('LMDB_ATTESTATION_SIGNER_ROLE') || !$city || !$signature || !$root || $signature !== basename($signature) || !is_file($root.'/attestation_settings/'.$signature)) {
