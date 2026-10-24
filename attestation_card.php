@@ -29,7 +29,8 @@ $parameters = array('id'=>$id);
 $reshook = $hookmanager->executeHooks('doActions',$parameters,$object,$action);
 if ($reshook < 0) { setEventMessages($hookmanager->error,$hookmanager->errors,'errors'); }
 if (!$reshook && in_array($action,array('add','save','confirm_validate','confirm_delete','confirm_cancel','builddoc'),true)) {
-	if ($_SERVER['REQUEST_METHOD'] !== 'POST') { accessforbidden(); }
+	// Native confirmation modals submit token-protected GET actions.
+	if (strpos($action, 'confirm_') !== 0 && $_SERVER['REQUEST_METHOD'] !== 'POST') { accessforbidden(); }
 	if (strpos($action, 'confirm_') === 0 && GETPOST('confirm','alpha') !== 'yes') { header('Location: '.$cardurl.'?id='.$id); exit; }
 	$result = -1;
 	if ($action === 'add' || $action === 'save') {
@@ -139,7 +140,7 @@ if ($action === 'create' || $action === 'edit') {
 	print '</div>';
 	if (in_array($action,array('validate','delete','cancel'),true)) {
 		$labels=array('validate'=>'Validate','delete'=>'Delete','cancel'=>'Cancel');
-		print $form->formconfirm($cardurl.'?id='.$id,$langs->trans($labels[$action]),$langs->trans('LmdbAttestationConfirm_'.$action),'confirm_'.$action,'',0,0);
+		print $form->formconfirm($cardurl.'?id='.$id,$langs->trans($labels[$action]),$langs->trans('LmdbAttestationConfirm_'.$action),'confirm_'.$action,'',0,1);
 	}
 	if ($action==='presend') { require __DIR__.'/lib/lmdb_attestation_mailform.php'; }
 	else {

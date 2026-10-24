@@ -331,7 +331,7 @@ class LmdbAttestation extends CommonObject
 		require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 		$models = getListOfModels($this->db, 'lmdbattestation');
 		if (!is_array($models) || !isset($models[$modele])) { $this->error = 'LmdbAttestationPdfUnavailable'; return -1; }
-		$result=$this->commonGenerateDocument('core/modules/lmdb/doc', $modele, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
+		$result=$this->commonGenerateDocument('core/modules/lmdb/doc/', $modele, $outputlangs, $hidedetails, $hidedesc, $hideref, $moreparams);
 		if ($result>0 && $this->emitCrud('UPDATE','document',$user)<0) { return -1; }
 		return $result;
 	}

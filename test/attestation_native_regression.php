@@ -167,10 +167,20 @@ if (in_array('--pdf',$argv,true)) {
 		}
 		$hookmanager=new AttestationPdfHooks($db);
 	}
-	class AttestationPdfFixture extends LmdbAttestation { public function indexFile($destfull,$update_main_doc_field) { return is_file($destfull)?1:-1; } }
+	class AttestationPdfFixture extends LmdbAttestation {
+		public $documentEvents=0;
+		public function indexFile($destfull,$update_main_doc_field) { return is_file($destfull)?1:-1; }
+		public function emitCrud($action,$reason,User $user) { if ($action==='UPDATE' && $reason==='document') { $this->documentEvents++; } return 1; }
+	}
 	$fixture=new AttestationPdfFixture($db);
 	foreach (array('id','ref','entity','status','snapshot_data') as $key) { $fixture->{$key}=$object->{$key}; }
 	$model=new pdf_loifinance($db);
 	checkAttestation($model->write_file($fixture,$langs)>0,'Native TCPDF two-part PDF generated');
+	$db->query("UPDATE fixture_lmdb_attestation SET snapshot_data='".$db->escape($object->snapshot_data)."' WHERE rowid=1");
+	$db->query('CREATE TABLE fixture_document_model (nom text,type text,libelle text,description text,entity integer)');
+	$db->query("INSERT INTO fixture_document_model VALUES ('loifinance','lmdbattestation','LmdbAttestation','',1)");
+	$conf->modules_parts['models']=array('/lmdb/');
+	checkAttestation($fixture->generateDocument('loifinance',$langs)>0,'Native generator discovery and business document generation succeed');
+	checkAttestation($fixture->documentEvents===1,'Document generation emits a single UPDATE event');
 	echo $dir.'/'.$fixture->ref.'.pdf'."\n";
 }
