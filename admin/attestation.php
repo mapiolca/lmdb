@@ -17,12 +17,12 @@ global $id, $action;
 
 $lmdbAdminPage=true;
 require __DIR__.'/../lib/lmdb_attestation_bootstrap.php';
-$langs->load('admin');
+$langs->loadLangs(array('admin', 'errors'));
 require_once __DIR__.'/../lib/lmdb.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formadmin.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 if (!$user->admin || !$user->hasRight('lmdb','setup','configure')) { accessforbidden(); }
-$settingkeys=array('LMDB_ATTESTATION_SIGNER'=>'LmdbIssuerRepresentative','LMDB_ATTESTATION_SIGNER_ROLE'=>'LmdbSignerRole','LMDB_ATTESTATION_CITY'=>'Town','LMDB_ATTESTATION_MASK'=>'LmdbAttestationNumberingMask');
+$settingkeys=array('LMDB_ATTESTATION_SIGNER'=>'LmdbIssuerRepresentative','LMDB_ATTESTATION_SIGNER_ROLE'=>'LmdbSignerRole','LMDB_ATTESTATION_CITY'=>'Town');
 $version = new LmdbAttestationVersion($db);
 $versionid=GETPOSTINT('versionid');
 if ($versionid>0 && $version->fetch($versionid)<=0) { accessforbidden(); }
@@ -60,6 +60,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 		$version->active=GETPOSTINT('active');
 		$result=$version->save($user);
 	} elseif ($action==='toggleversion' && $version->id>0) { $version->active=(int)!$version->active; $result=$version->save($user);
+	} elseif ($action==='updateMask') {
+		$mask = GETPOST('maskattestation', 'alphanohtml');
+		$samplethirdparty = new Societe($db);
+		$samplethirdparty->initAsSpecimen();
+		$example = get_next_value($db, $mask, 'lmdb_attestation', 'ref', '', $samplethirdparty, dol_now(), 'next', false, null, (string)(int)$conf->entity);
+		if ($mask !== '' && strlen($mask) <= 128 && !preg_match('/\s/', $mask) && $example !== '' && !preg_match('/^(Error|error)/', $example) && !preg_match('/[{}]/', $example) && $example === dol_sanitizeFileName($example)) {
+			$result = dolibarr_set_const($db, 'LMDB_ATTESTATION_MASK', $mask, 'chaine', 0, '', (int)$conf->entity);
+		} else { $version->error = $langs->trans('ErrorBadMask'); }
+	} elseif ($action==='enablepdf') { $result=addDocumentModel('loifinance','lmdbattestation','LmdbAttestation');
 	} elseif ($action==='setpdf') {
 		$result=addDocumentModel('loifinance','lmdbattestation','LmdbAttestation');
 		if ($result>0) { $result=dolibarr_set_const($db,'LMDB_ATTESTATION_ADDON_PDF','loifinance','chaine',0,'',(int)$conf->entity); }
@@ -71,6 +80,29 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 llxHeader('',$langs->trans('LmdbAttestations'));
 print load_fiche_titre($langs->trans('LmdbAttestations'),lmdbGetBackToModuleListLink(),'title_setup');
 print dol_get_fiche_head(lmdbAdminPrepareHead(),'attestation','',-1);
+// Core admin layout: numbering first, then document models, before business settings.
+require_once __DIR__.'/../core/modules/lmdb/modules_lmdbattestation.php';
+require_once __DIR__.'/../core/modules/lmdb/mod_lmdbattestation_standard.php';
+require_once __DIR__.'/../core/modules/lmdb/doc/pdf_loifinance.modules.php';
+$numbering = new mod_lmdbattestation_standard();
+print load_fiche_titre($langs->trans('NumberingModules'), '', '');
+print '<div class="div-table-responsive-no-min"><table class="noborder centpercent"><tr class="liste_titre"><td>'.$langs->trans('Name').'</td><td>'.$langs->trans('Description').'</td><td class="nowrap">'.$langs->trans('Example').'</td><td class="center width60">'.$langs->trans('Status').'</td><td class="center">'.$langs->trans('ShortInfo').'</td></tr>';
+print '<tr class="oddeven"><td>'.dol_escape_htmltag($numbering->getName($langs)).'</td><td>'.$numbering->info($langs).'</td><td class="nowrap">'.dol_escape_htmltag($numbering->getExample()).'</td><td class="center">';
+if (getDolGlobalString('LMDB_ATTESTATION_ADDON') === 'mod_lmdbattestation_standard') { print img_picto($langs->trans('Activated'), 'switch_on'); }
+else { print '<form method="post"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="action" value="setnumbering"><button class="noborder" type="submit">'.img_picto($langs->trans('Disabled'), 'switch_off').'</button></form>'; }
+print '</td><td class="center">'.$form->textwithpicto('', $langs->trans('Version').': '.dol_escape_htmltag($numbering->getVersion()), 1, 'info').'</td></tr></table></div><br>';
+
+$models = ModelePDFLmdbattestation::liste_modeles($db);
+if (!is_array($models)) { dol_print_error($db); }
+$pdfmodel = new pdf_loifinance($db);
+$pdfactive = is_array($models) && isset($models[$pdfmodel->name]);
+print load_fiche_titre($langs->trans('ModelModules'), '', '');
+print '<div class="div-table-responsive-no-min"><table class="noborder centpercent"><tr class="liste_titre"><td>'.$langs->trans('Name').'</td><td>'.$langs->trans('Description').'</td><td class="center width60">'.$langs->trans('Status').'</td><td class="center width60">'.$langs->trans('Default').'</td><td class="center">'.$langs->trans('ShortInfo').'</td></tr>';
+print '<tr class="oddeven"><td>'.dol_escape_htmltag($pdfmodel->name).'</td><td>'.$langs->trans($pdfmodel->description).'</td><td class="center"><form method="post"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="action" value="'.($pdfactive ? 'disablepdf' : 'enablepdf').'"><button class="noborder" type="submit">'.img_picto($langs->trans($pdfactive ? 'Enabled' : 'Disabled'), $pdfactive ? 'switch_on' : 'switch_off').'</button></form></td><td class="center">';
+if ($pdfactive && getDolGlobalString('LMDB_ATTESTATION_ADDON_PDF') === $pdfmodel->name) { print img_picto($langs->trans('Default'), 'on'); }
+else { print '<form method="post"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="action" value="setpdf"><button class="noborder" type="submit">'.img_picto($langs->trans('Default'), 'off').'</button></form>'; }
+$pdfinfo = $langs->trans('Name').': '.dol_escape_htmltag($pdfmodel->name).'<br>'.$langs->trans('Type').': '.dol_escape_htmltag($pdfmodel->type).'<br>'.$langs->trans('Width').'/'.$langs->trans('Height').': '.$pdfmodel->page_largeur.'/'.$pdfmodel->page_hauteur;
+print '</td><td class="center">'.$form->textwithpicto('', $pdfinfo, 1, 'info').'</td></tr></table></div><br>';
 print '<div class="info">'.$langs->trans('LmdbAttestationSettingsHelp').'</div>';
 print '<form method="post" enctype="multipart/form-data" action="'.$_SERVER['PHP_SELF'].'"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="action" value="savesettings"><div class="div-table-responsive-no-min"><table class="noborder centpercent"><tr class="liste_titre"><td colspan="2">'.$langs->trans('LmdbIssuerSettings').'</td></tr>';
 foreach ($settingkeys as $key=>$label) { print '<tr class="oddeven"><td class="titlefield fieldrequired">'.$langs->trans($label).'</td><td><input class="flat minwidth300" type="text" name="'.$key.'" value="'.dol_escape_htmltag(getDolGlobalString($key)).'" required></td></tr>'; }
@@ -96,15 +128,4 @@ foreach ($version->fields as $key=>$field) {
 	print '</td></tr>';
 }
 print '</table></div><div class="center"><button class="button" type="submit">'.$langs->trans('Save').'</button></div></form>';
-// Native model management: activation, default selection, mask, example and help.
-require_once __DIR__.'/../core/modules/lmdb/modules_lmdbattestation.php';
-require_once __DIR__.'/../core/modules/lmdb/mod_lmdbattestation_standard.php';
-$models=ModelePDFLmdbattestation::liste_modeles($db);
-print load_fiche_titre($langs->trans('ModelModules'));
-print '<div class="div-table-responsive-no-min"><table class="noborder centpercent"><tr class="liste_titre"><td>'.$langs->trans('Name').'</td><td>'.$langs->trans('Status').'</td><td>'.$langs->trans('Default').'</td></tr><tr class="oddeven"><td>loifinance</td><td>'.yn(is_array($models)&&isset($models['loifinance'])).'</td><td>';
-foreach (array('setpdf'=>'Default','disablepdf'=>'Disable') as $operation=>$label) { print '<form class="inline-block" method="post"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="action" value="'.$operation.'"><button class="button small" type="submit">'.$langs->trans($label).'</button></form>'; }
-print '</td></tr></table></div>';
-$numbering=new mod_lmdbattestation_standard();
-print load_fiche_titre($langs->trans('NumberingModules'));
-print '<div class="div-table-responsive-no-min"><table class="noborder centpercent"><tr class="liste_titre"><td>'.$langs->trans('Name').'</td><td>'.$langs->trans('Example').'</td><td>'.$langs->trans('Information').'</td></tr><tr class="oddeven"><td>standard</td><td>'.dol_escape_htmltag($numbering->getExample()).'</td><td>'.dol_escape_htmltag(getDolGlobalString('LMDB_ATTESTATION_MASK')).' — '.$numbering->info($langs).'</td></tr></table></div>';
 print dol_get_fiche_end(); llxFooter(); $db->close();

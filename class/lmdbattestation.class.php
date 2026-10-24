@@ -217,7 +217,7 @@ class LmdbAttestation extends CommonObject
 		$version = new LmdbAttestationVersion($this->db);
 		if ($version->fetch($old->fk_version) <= 0) { $this->db->rollback(); return -1; }
 		$old->oldcopy = clone $old;
-		$ref = $old->getNextNumRef();
+		$ref = $old->getNextNumRef($old->thirdparty);
 		if (!$ref) { $this->error = $old->error; $this->db->rollback(); return -1; }
 		$old->ref = $ref;
 		$dir = $old->documentDirectory(true);
