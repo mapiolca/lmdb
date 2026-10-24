@@ -11,7 +11,7 @@ cache = root / 'test/.runtime'
 cache.mkdir(exist_ok=True)
 classes = ['core/class/commonobject.class.php', 'core/class/commondocgenerator.class.php',
            'core/class/commonnumrefgenerator.class.php', 'core/class/hookmanager.class.php',
-           'core/class/html.form.class.php', 'core/class/html.formfile.class.php',
+           'ecm/class/ecmfiles.class.php', 'core/class/link.class.php', 'core/class/html.form.class.php', 'core/class/html.formfile.class.php',
            'core/class/html.formmail.class.php', 'core/class/html.formadmin.class.php',
            'core/class/translate.class.php', 'core/class/commontrigger.class.php', 'core/class/doldeprecationhandler.class.php', 'core/class/conf.class.php', 'core/class/html.formactions.class.php', 'core/class/cemailtemplate.class.php', 'core/db/Database.interface.php', 'main.inc.php', 'includes/tecnickcom/tcpdf/tcpdf.php', 'includes/tcpdi/tcpdi.php', 'includes/restler/framework/Luracast/Restler/RestException.php', 'societe/class/societe.class.php',
            'comm/action/class/actioncomm.class.php','contact/class/contact.class.php','user/class/user.class.php', 'core/db/DoliDB.class.php',

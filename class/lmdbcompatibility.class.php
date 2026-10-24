@@ -270,6 +270,13 @@ class LmdbCompatibility
 			'compatibility_check'=>"Dolibarr >= 20; PHP >= 8.0; isModEnabled('societe'); Imagick; !MAIN_DISABLE_PDF_THUMBS",
 			'available'=>empty($previewReasons), 'reasons'=>$previewReasons,
 		));
+		$features['attestation_document_embedded_forms'] = array_replace($features['individual_attestations'], array(
+			'code'=>'attestation_document_embedded_forms','label'=>'LmdbFeatureEmbeddedDocumentForms','description'=>'LmdbFeatureEmbeddedDocumentFormsDescription',
+			'min_dolibarr'=>'21.0.0','core_available_from'=>'21.0.0','module_available_from'=>'21.0.0',
+			'compatibility_check'=>"DOL_VERSION >= 21.0.0; PHP >= 8.0; isModEnabled('societe')",
+			'available'=>self::isAttestationSupported() && self::isDolibarrVersionAtLeast('21.0.0'),
+			'reasons'=>array_merge($reasons, self::isDolibarrVersionAtLeast('21.0.0') ? array() : array('LmdbRequires21EmbeddedDocumentForms')),
+		));
 		return $features;
 	}
 

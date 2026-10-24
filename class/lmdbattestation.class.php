@@ -291,9 +291,85 @@ class LmdbAttestation extends CommonObject
 		if (!$this->db->begin()) { $this->error = $this->db->lasterror(); return -1; }
 		$old = $this->lockedOriginal($user);
 		if (!$old || (int) $old->status !== self::STATUS_DRAFT) { $this->error = 'LmdbAttestationLocked'; $this->db->rollback(); return -1; }
-		if ((!$notrigger && $old->emitCrud('DELETE', 'delete', $user) < 0) || $old->deleteCommon($user, 1) <= 0) { $this->error = $old->error; $this->db->rollback(); return -1; }
+		if ((!$notrigger && $old->emitCrud('DELETE', 'delete', $user) < 0) || $old->delete_linked_contact() < 0 || $old->deleteCommon($user, 1) <= 0) { $this->error = $old->error; $this->db->rollback(); return -1; }
 		if (!$this->db->commit()) { $this->db->rollback(); $this->error = $this->db->lasterror(); return -1; }
 		return 1;
+	}
+
+	/** Allowed native contact IDs, scoped to the owner/thirdparty, without N+1 queries.
+	 * @param string $source internal or external
+	 * @return array<int,bool>|false
+	 */
+	private function accessibleContactIds($source)
+	{
+		global $user;
+		if ($source === 'external') {
+			if (!$user->hasRight('societe', 'contact', 'lire')) { return array(); }
+			$sql = 'SELECT rowid FROM '.MAIN_DB_PREFIX.'socpeople WHERE fk_soc='.(int)$this->fk_soc.' AND entity IN ('.$this->db->sanitize(getEntity('contact')).')';
+		} elseif ($source === 'internal') {
+			// Same entity contract as the native user selector, including transverse mode.
+			$sql = 'SELECT rowid FROM '.MAIN_DB_PREFIX.'user WHERE (fk_soc IS NULL OR fk_soc=0) AND ';
+			if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_TRANSVERSE_MODE')) {
+				$sql .= 'rowid IN (SELECT fk_user FROM '.MAIN_DB_PREFIX.'usergroup_user WHERE entity IN ('.$this->db->sanitize(getEntity('usergroup')).'))';
+			} else { $sql .= 'entity IN (0,'.$this->db->sanitize(getEntity('user')).')'; }
+		} else { return array(); }
+		$res = $this->db->query($sql);
+		if (!$res) { $this->error = $this->db->lasterror(); return false; }
+		$ids = array();
+		while (is_object($row = $this->db->fetch_object($res))) { $ids[(int)$row->rowid] = true; }
+		return $ids;
+	}
+
+	/** Native links filtered before they reach templates, mail recipients or counters.
+	 * @return array|int Native contact rows/IDs, or -1 on failure
+	 */
+	public function liste_contact($statusoflink = -1, $source = 'external', $list = 0, $code = '', $status = -1, $arrayoftcids = array())
+	{
+		global $user;
+		$loaded = clone $this;
+		if (!$user->hasRight('lmdb', 'lmdbattestation', 'read') || $loaded->fetch($this->id) <= 0) { return array(); }
+		$source = $source === 'thirdparty' ? 'external' : $source;
+		$allowed = $loaded->accessibleContactIds($source);
+		if ($allowed === false) { $this->error = $loaded->error; return -1; }
+		if (!$allowed) { return array(); }
+		$rows = parent::liste_contact($statusoflink, $source, $list, $code, $status, $arrayoftcids);
+		if (!is_array($rows)) { return -1; }
+		return array_values(array_filter($rows, static function ($row) use ($list, $allowed) { return isset($allowed[(int)($list ? $row : $row['id'])]); }));
+	}
+
+	/** Change a native element_contact link, preserving the immutable legal snapshot.
+	 * @param string $operation add, toggle or unlink
+	 * @param int $contactid Contact or user ID (add only)
+	 * @param int $typeid Native role ID (add only)
+	 * @param string $source internal or external
+	 * @param int $linkid Native link ID (toggle/unlink)
+	 * @return int >0 on success, 0 for duplicate, <0 on failure
+	 */
+	public function changeContact($operation, $contactid, $typeid, $source, $linkid = 0)
+	{
+		global $user;
+		if (!$user->hasRight('lmdb', 'lmdbattestation', 'write') || !in_array($operation, array('add','toggle','unlink'), true)) { $this->error = 'NotEnoughPermissions'; return -1; }
+		if (!$this->db->begin()) { $this->error = $this->db->lasterror(); return -1; }
+		$old = $this->lockedOriginal($user);
+		if (!$old) { $this->db->rollback(); return -1; }
+		$link = null;
+		if ($operation !== 'add') {
+			$res = $this->db->query('SELECT ec.fk_socpeople,ec.statut,tc.source,tc.rowid AS typeid FROM '.MAIN_DB_PREFIX.'element_contact ec JOIN '.MAIN_DB_PREFIX."c_type_contact tc ON tc.rowid=ec.fk_c_type_contact WHERE tc.element='lmdbattestation' AND ec.element_id=".(int)$old->id.' AND ec.rowid='.(int)$linkid.' FOR UPDATE');
+			$link = $res ? $this->db->fetch_object($res) : null;
+			if (!is_object($link)) { $this->error = 'ErrorRecordNotFound'; $this->db->rollback(); return -1; }
+			$source = $link->source; $contactid = (int)$link->fk_socpeople; $typeid = (int)$link->typeid;
+		}
+		$allowed = $old->accessibleContactIds($source);
+		$roles = $old->liste_type_contact($source, 'position', 0, $operation === 'add' ? 1 : 0);
+		if ($allowed === false || !isset($allowed[(int)$contactid]) || !is_array($roles) || !isset($roles[(int)$typeid])) { $this->error = 'NotEnoughPermissions'; $this->db->rollback(); return -1; }
+		$old->oldcopy = clone $old;
+		if ($operation === 'add') { $result = $old->add_contact($contactid, $typeid, $source, 1); }
+		elseif ($operation === 'unlink') { $result = $old->delete_contact($linkid, 1); }
+		else { $result = $old->update_contact($linkid, (int)$link->statut === 4 ? 5 : 4); if ($result >= 0) { $result = 1; } }
+		$old->context['contact_operation'] = $operation;
+		if ($result < 0 || ($result > 0 && $old->emitCrud('UPDATE', 'contacts', $user) < 0)) { $this->error = $old->error; $this->errors = $old->errors; $this->db->rollback(); return -1; }
+		if (!$this->db->commit()) { $this->error = $this->db->lasterror(); $this->db->rollback(); return -1; }
+		return $result;
 	}
 
 	/** Native numbering, serialized by an entity-level lock in the numbering model. @return string */

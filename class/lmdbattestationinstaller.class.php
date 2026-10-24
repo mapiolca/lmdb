@@ -33,6 +33,11 @@ class LmdbAttestationInstaller
 			$sql = "INSERT INTO ".MAIN_DB_PREFIX."c_action_trigger (elementtype,code,label,description,rang) SELECT 'lmdbattestation@lmdb','".$code."','".$code."','Individual attestation CRUD event; detail in object context',450050 WHERE NOT EXISTS (SELECT rowid FROM ".MAIN_DB_PREFIX."c_action_trigger WHERE code='".$code."')";
 			if (!$db->query($sql)) { return -1; }
 		}
+		// Native contact roles are global dictionary entries, never reset on reload.
+		foreach (array(array('internal','RESPONSIBLE','Responsible internal contact'), array('external','SIGNATORY','Client signatory'), array('external','RECIPIENT','Recipient')) as $role) {
+			$sql = "INSERT INTO ".MAIN_DB_PREFIX."c_type_contact (element,source,code,libelle,active,module,position) SELECT 'lmdbattestation','".$role[0]."','".$role[1]."','".$db->escape($role[2])."',1,'lmdb',10 WHERE NOT EXISTS (SELECT rowid FROM ".MAIN_DB_PREFIX."c_type_contact WHERE element='lmdbattestation' AND source='".$role[0]."' AND code='".$role[1]."')";
+			if (!$db->query($sql)) { return -1; }
+		}
 		$templates = array(
 			'fr_FR'=>array('Attestation Loi Finance','Votre attestation de conformité __LMDB_ATTESTATION_REF__','Bonjour,<br><br>Veuillez trouver en pièce jointe votre attestation de conformité pour Dolibarr __LMDB_ATTESTATION_VERSION__, datée du __LMDB_ATTESTATION_DATE__.<br>Merci de compléter et signer le volet 2, puis de nous retourner les deux volets.<br><br>Cordialement.'),
 			'en_US'=>array('Finance Act attestation','Your conformity attestation __LMDB_ATTESTATION_REF__','Hello,<br><br>Please find attached your French conformity attestation for Dolibarr __LMDB_ATTESTATION_VERSION__, issued on __LMDB_ATTESTATION_DATE__.<br>Please complete and sign part 2 and return both parts.<br><br>Kind regards.'),

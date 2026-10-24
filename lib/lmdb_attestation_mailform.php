@@ -30,6 +30,13 @@ if (!$pdf || !lmdbAttestationFileBelongsToObject($object,$pdf) || !is_readable($
 	$formmail->frommail=GETPOSTISSET('frommail')?GETPOST('frommail','email'):$user->email;
 	$formmail->withfrom=1; $formmail->withfromreadonly=0;
 	$formmail->withto=array('thirdparty'=>$object->thirdparty->name.' <'.$object->thirdparty->email.'>');
+	// Native linked contacts, already filtered by attestation/tier/entity access.
+	$linkedcontacts = $object->liste_contact(4, 'external', 0, '', 1);
+	if (is_array($linkedcontacts)) {
+		foreach ($linkedcontacts as $contact) {
+			if (!empty($contact['email'])) { $formmail->withto[(int)$contact['id']] = trim($contact['firstname'].' '.$contact['lastname']).' <'.$contact['email'].'>'; }
+		}
+	}
 	$formmail->withtofree=1; $formmail->withtocc=1; $formmail->withtoccc=1;
 	$formmail->withtopic=1; $formmail->withbody=1; $formmail->withfile=2; $formmail->withcancel=1;
 	$formmail->substit=getCommonSubstitutionArray($langs,0,null,$object);

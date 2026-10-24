@@ -310,3 +310,12 @@ LmdbFeaturePdfPreview=Aperçu PDF dans la bannière
 LmdbFeaturePdfPreviewDescription=Miniature de la première page et ouverture de l’aperçu natif du PDF.
 LmdbRequiresImagickPdfPreview=Extension PHP Imagick et conversion PDF autorisée requises pour les miniatures natives.
 LmdbPdfPreviewDisabled=Les miniatures PDF sont désactivées dans les réglages Dolibarr.
+
+TypeContact_lmdbattestation_internal_RESPONSIBLE=Responsable interne
+TypeContact_lmdbattestation_external_SIGNATORY=Signataire client
+TypeContact_lmdbattestation_external_RECIPIENT=Destinataire
+LmdbAttestationEvent_contacts=Contacts de l’attestation %s modifiés
+
+LmdbFeatureEmbeddedDocumentForms=Formulaires documentaires intégrés aux titres
+LmdbFeatureEmbeddedDocumentFormsDescription=Boutons natifs d’ajout de fichier ou de lien dans les titres, disponibles depuis Dolibarr 21.
+LmdbRequires21EmbeddedDocumentForms=Dolibarr 21 requis pour les formulaires intégrés ; Dolibarr 20 conserve ses formulaires classiques.

@@ -124,3 +124,20 @@ Code `714c567390fbb3d9e8efba0175e455102eb0bdf6`, puis `d457e164a2a255f062ce0a177
 - Sur `d457e16` : **59 contrôles** réussis dans chaque exécution normale et stress de la régression native ; syntaxe des **41 PHP**, PHPStan **2.3.1 niveau 5** (cible PHP 8.0, zéro erreur, sans ignore/baseline), non-régression des traductions FR/EN réussis. Les doubles SQLite et les limites de matrice de versions restent ceux décrits plus haut. Aucun contrôle CI GitHub déclaré sur cette PR au moment de la vérification ; ce n’est pas une validation CI.
 
 État final inchangé : module activé, deux versions fictives désactivées, spécimen annulé, configuration d’émetteur vide hors ville native, Standard et PDF par défaut conservés ; Agenda et messagerie inchangés. Aucun email envoyé ni donnée métier supprimée. Seule une miniature native dérivée du PDF historique a été créée.
+
+## Complément — contacts et onglet documentaire complet
+
+- Contacts : chargement explicite de `Contact`, rôles idempotents dans `c_type_contact`, listes et actions natives `element_contact`/`contacts.tpl.php`. Les contacts externes sont limités au tiers de l’attestation et aux entités accessibles, conformément à la réponse utilisateur. Les mutations appellent un seul UPDATE CRUD avec le contexte `contacts`, sans réécriture de l’instantané légal.
+- Régression locale : ajout, doublon, activation/désactivation du lien, retrait, refus de tiers/entité/rôle étrangers, refus d’un identifiant de liaison appartenant à une autre attestation et d’un acteur sans droit. Un contact déplacé vers un autre tiers disparaît de la restitution sans suppression de sa liaison historique. Adaptateur PDO SQLite héritant du pilote natif ; ce montage ne prouve pas les verrous MySQL. Dispatcher de triggers natif chargé, sans Agenda/Notifications activés dans la fixture.
+- Documents : répertoire propriétaire partagé par compteurs, liste complète `list_of_documents()`, liens `listOfLinks()` et actions natives. Les mutations de lien sont rattachées à l’objet ; les actions ECM/renommage sont limitées à son répertoire et ne peuvent renommer le PDF officiel. Génération et dépôt restent soumis au statut validé et aux droits correspondants ; lecture des fichiers conservée pour les objets annulés.
+- Contrat des formulaires intégrés aux titres : présent dès 21.0.0, absent de 20.0.0 (révisions figées du tableau ci-dessus). Le contrôle centralisé de compatibilité conserve les formulaires natifs classiques en v20. PHPStan utilise un stub documentaire ciblé du paramètre `nooutput=2`, reconnu par le code natif v21+ mais mal décrit dans son PHPDoc v24 ; aucune erreur masquée.
+
+## Recette PDF complémentaire du 24 octobre 2026
+
+Code du modèle déployé `2fe6fff3c11b0fae4ab0e2138f8f947694ab0713`, develop Dolibarr 25.0.0-alpha / PHP 8.3.36 / TEST 1 / Multicompany actif. Génération et téléchargement dans le navigateur intégré, rendu local Poppler des PDF reçus, TCPDF 6.11.4.
+
+- Spécimen 3, `ATLF-2026-0002` : deux pages A4, dates client laissées vides, caractères accentués, signature SPECIMEN et coordonnées figées. Régénération depuis Fichiers joints avec l’option native d’adresse dans le pied : adresse, téléphone et coordonnées ajoutés sur les deux pages.
+- Spécimen 4, `ATLF-2026-0003` : périmètre de 2 952 caractères, trois pages A4, dates d’acquisition 20/10/2026 et d’utilisation 21/10/2026 conservées, accents ÀÉÈÇ, continuation du volet éditeur puis volet client distinct. Aucun encadré d’adresse répété après la première page ; titre/logo/référence/date conservés. Signatures et mentions ne chevauchent pas les pieds.
+- Le réglage natif de détails de pied est revenu de 1 à sa valeur initiale 0. Les deux versions catalogue sont revenues inactives et les paramètres fictifs d’émetteur/signature ont retrouvé une valeur effective vide par l’administration native. L’asset de signature de test est conservé ; aucun courriel envoyé.
+
+Les essais HTML/texte libre très long et hook de pied sont locaux ; aucun hook tiers de pied activé sur develop. Les essais de droits partiels et documents partagés entre deux entités restent non exécutés sur instance.

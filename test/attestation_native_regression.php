@@ -16,11 +16,13 @@ define('TCPDI_PATH',$core.'/includes/tcpdi/');
 require_once $core.'/core/lib/functions.lib.php';
 require_once $core.'/core/lib/security.lib.php';
 require_once $core.'/core/class/translate.class.php';
+require_once $core.'/core/class/conf.class.php';
+require_once $core.'/core/db/sqlite3.class.php';
 require_once $core.'/user/class/user.class.php';
 require_once dirname(__DIR__).'/class/lmdbattestation.class.php';
 require_once dirname(__DIR__).'/class/lmdbattestationmail.class.php';
 
-class AttestationTestDb
+class AttestationTestDb extends DoliDBSqlite3
 {
 	public $type='sqlite';
 	public $prefix='fixture_';
@@ -32,25 +34,26 @@ class AttestationTestDb
 	public $failSql='';
 	public function __construct() { $this->pdo=new PDO('sqlite::memory:'); $this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION); }
 	public function prefix() { return $this->prefix; }
-	public function query($sql,$usesavepoint=0,$type='auto') {
+	public function order($field='',$direction='ASC') { return ' ORDER BY '.$field.' '.$direction; }
+	public function query($sql,$usesavepoint=0,$type='auto',$result_mode=0) {
 		if ($this->failSql!=='' && strpos($sql,$this->failSql)!==false) { $this->lastError='Injected database failure'; return false; }
 		$sql=str_replace(' FOR UPDATE','',$sql);
 		try { return $this->pdo->query($sql); } catch (Exception $e) { $this->lastError=$e->getMessage(); return false; }
 	}
 	public function fetch_object($res) { return $res->fetchObject(); }
 	public function num_rows($res) { $rows=$res->fetchAll(PDO::FETCH_OBJ); $res->execute(); return count($rows); }
-	public function free($res) { return true; }
+	public function free($res=null) { return true; }
 	public function escape($str) { return str_replace("'","''",(string)$str); }
-	public function sanitize($str,$a=0,$b=0,$c=0) { return $str; }
-	public function idate($date) { return $date ? date('Y-m-d H:i:s',(int)$date) : null; }
-	public function jdate($date) { return $date ? strtotime($date) : null; }
+	public function sanitize($str,$a=0,$b=0,$c=0,$d=1) { return $str; }
+	public function idate($date,$gm='tzserver') { return $date ? date('Y-m-d H:i:s',(int)$date) : null; }
+	public function jdate($date,$gm='tzserver') { return $date ? strtotime($date) : null; }
 	public function lasterror() { return $this->lastError; }
-	public function last_insert_id($table='') { return (int)$this->pdo->lastInsertId(); }
-	public function begin() { if ($this->failBegin) { return 0; } if (!$this->level++) { $this->pdo->beginTransaction(); } return 1; }
-	public function commit() { if ($this->failCommit) { return 0; } if (--$this->level===0) { $this->pdo->commit(); } return 1; }
-	public function rollback() { if ($this->level>0 && --$this->level===0) { $this->pdo->rollBack(); } return 1; }
+	public function last_insert_id($table='',$fieldid='rowid') { return (int)$this->pdo->lastInsertId(); }
+	public function begin($textinlog='') { if ($this->failBegin) { return 0; } if (!$this->level++) { $this->pdo->beginTransaction(); } return 1; }
+	public function commit($log='') { if ($this->failCommit) { return 0; } if (--$this->level===0) { $this->pdo->commit(); } return 1; }
+	public function rollback($log='') { if ($this->level>0 && --$this->level===0) { $this->pdo->rollBack(); } return 1; }
 	public function affected_rows($res) { return $res->rowCount(); }
-	public function plimit($limit,$offset=0) { return ' LIMIT '.(int)$limit.' OFFSET '.(int)$offset; }
+	public function plimit($limit=0,$offset=0) { return ' LIMIT '.(int)$limit.' OFFSET '.(int)$offset; }
 }
 class AttestationTestUser extends User
 {
@@ -58,7 +61,8 @@ class AttestationTestUser extends User
 	public function hasRight($module,$level1,$level2=null,$default=0) { return $this->allow; }
 }
 // Native helpers use these module/translation globals. No real configuration is touched.
-$conf=(object)array('entity'=>1,'global'=>new stdClass(),'modules'=>array(),'modules_parts'=>array('hooks'=>array(),'substitutions'=>array(),'models'=>array()),'file'=>(object)array('dol_document_root'=>array($core,dirname(__DIR__,2)), 'dol_url_root'=>array('', ''), 'main_authentication'=>array()),'currency'=>'EUR');
+$conf=new Conf();
+foreach (array('entity'=>1,'global'=>new stdClass(),'modules'=>array(),'modules_parts'=>array('hooks'=>array(),'substitutions'=>array(),'models'=>array(),'triggers'=>array()),'file'=>(object)array('dol_document_root'=>array($core,dirname(__DIR__,2)), 'dol_url_root'=>array('', ''), 'main_authentication'=>array()),'currency'=>'EUR') as $key=>$value) { $conf->{$key}=$value; }
 foreach (array('lmdb','societe') as $module) { $conf->{$module}=(object)array('enabled'=>1); $conf->modules[$module]=1; }
 $conf->lmdb->multidir_output=array(1=>DOL_DATA_ROOT.'/lmdb',2=>DOL_DATA_ROOT.'/entity2/lmdb');
 $langs=new Translate('',$conf); $langs->setDefaultLang('fr_FR'); $langs->loadLangs(array('main','errors','other'));
@@ -81,12 +85,42 @@ foreach (glob(dirname(__DIR__).'/sql/llx_lmdb_attestation*.key.sql') as $keyfile
 $db->query('CREATE TABLE fixture_societe (rowid integer PRIMARY KEY, entity integer, nom text)');
 $db->query('CREATE TABLE fixture_societe_commerciaux (fk_soc integer,fk_user integer)');
 $db->query("INSERT INTO fixture_societe VALUES (1,1,'Client de test'),(2,2,'Autre entité')");
+$db->query('CREATE TABLE fixture_c_type_contact (rowid integer PRIMARY KEY, element text, source text, code text, libelle text, position integer, active integer)');
+$db->query("INSERT INTO fixture_c_type_contact VALUES (1,'lmdbattestation','internal','RESPONSIBLE','Responsible',10,1),(2,'lmdbattestation','external','SIGNATORY','Signatory',10,1),(3,'other','external','OTHER','Other',10,1)");
+$db->query('CREATE TABLE fixture_element_contact (rowid integer PRIMARY KEY AUTOINCREMENT, element_id integer, fk_socpeople integer, datecreate text, statut integer, fk_c_type_contact integer)');
+$db->query('CREATE TABLE fixture_c_country (rowid integer PRIMARY KEY,label text)');
+$db->query('CREATE TABLE fixture_socpeople (rowid integer PRIMARY KEY,entity integer,fk_soc integer,statut integer,civility text,firstname text,lastname text,email text,address text,zip text,town text,fk_pays integer)');
+$db->query("INSERT INTO fixture_socpeople VALUES (1,1,1,1,'','Élise','Test','test@example.invalid','','','',NULL),(2,1,2,1,'','Autre','Tiers','','','','',NULL),(3,2,1,1,'','Autre','Entité','','','','',NULL)");
+$db->query('CREATE TABLE fixture_user (rowid integer PRIMARY KEY,entity integer,fk_soc integer,statut integer,login text,photo text,gender text,fk_country integer,civility text,firstname text,lastname text,email text,address text,zip text,town text)');
+$db->query("INSERT INTO fixture_user VALUES (1,0,NULL,1,'test','','',NULL,'','Interne','Test','','','',''),(2,2,NULL,1,'autre','','',NULL,'','Autre','Entité','','','','')");
+
 $db->query("INSERT INTO fixture_lmdb_attestation VALUES (1,1,'ATLF-TEST-0001',1,1,'2026-10-24',NULL,NULL,'','',1,'{\"schema\":\"1\",\"version\":\"24.0.2\"}',NULL,NULL,'2026-10-24',NULL,NULL,1,NULL,NULL,NULL,NULL,NULL)");
 function checkAttestation($ok,$message) { if (!$ok) { throw new RuntimeException($message); } echo 'PASS '.$message."\n"; }
 $object=new LmdbAttestation($db);
 checkAttestation($object->fetch(1)>0,'Native fetch inside business/entity scope');
 checkAttestation($object->socid===$object->fk_soc,'Native thirdparty alias is synchronized after fetch');
 checkAttestation($object->legalSnapshot()['version']==='24.0.2','Frozen snapshot loaded');
+$contactsnapshot = $object->snapshot_data;
+checkAttestation($object->changeContact('add',1,2,'external')>0,'Native external contact linked to its attestation');
+checkAttestation($object->changeContact('add',1,2,'external')===0,'Repeated contact association is idempotent');
+checkAttestation($object->changeContact('add',2,2,'external')<0 && $object->changeContact('add',3,2,'external')<0,'Contacts of another tier or entity are refused');
+checkAttestation($object->changeContact('add',1,3,'external')<0,'Foreign native contact role is refused');
+checkAttestation($object->changeContact('add',1,1,'internal')>0 && $object->changeContact('add',2,1,'internal')<0,'Internal contact is scoped to accessible entities');
+$contacts = $object->liste_contact(-1,'external'); $contactlink = (int)$contacts[0]['rowid'];
+checkAttestation(count($contacts)===1 && $object->changeContact('toggle',0,0,'',$contactlink)>0 && count($object->liste_contact(4,'external'))===0,'Native contact status can be toggled without changing the person');
+$db->query("INSERT INTO fixture_element_contact (element_id,fk_socpeople,datecreate,statut,fk_c_type_contact) VALUES (999,1,'2026-10-24',4,2)");
+$foreignlink = $db->last_insert_id();
+checkAttestation($object->changeContact('unlink',0,0,'',$foreignlink)<0,'Link ID of another attestation cannot be mutated');
+$user->allow=false;
+checkAttestation($object->changeContact('unlink',0,0,'',$contactlink)<0 && $object->liste_contact(-1,'external')===array(),'Missing permissions refuse contact reads and mutations');
+$user->allow=true;
+checkAttestation($object->changeContact('unlink',0,0,'',$contactlink)>0 && $object->snapshot_data===$contactsnapshot,'Unlinking a contact preserves the legal snapshot');
+$db->query('UPDATE fixture_socpeople SET fk_soc=2 WHERE rowid=1');
+$db->query("INSERT INTO fixture_element_contact (element_id,fk_socpeople,datecreate,statut,fk_c_type_contact) VALUES (1,1,'2026-10-24',4,2)");
+checkAttestation($object->liste_contact(-1,'external')===array(),'Moved contact is hidden without deleting its historical association');
+$db->query('UPDATE fixture_socpeople SET fk_soc=1 WHERE rowid=1');
+$db->query('DELETE FROM fixture_element_contact');
+
 // Only thirdparty hydration is simulated here; object/rights/entity fetching is native.
 class AttestationTooltipFixture extends LmdbAttestation {
 	public function fetch_thirdparty($force_thirdparty_id = 0) {

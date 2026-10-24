@@ -310,3 +310,12 @@ LmdbFeaturePdfPreview=PDF preview in the banner
 LmdbFeaturePdfPreviewDescription=First-page thumbnail opening the native PDF preview.
 LmdbRequiresImagickPdfPreview=PHP Imagick and permitted PDF conversion are required for native thumbnails.
 LmdbPdfPreviewDisabled=PDF thumbnails are disabled in Dolibarr settings.
+
+TypeContact_lmdbattestation_internal_RESPONSIBLE=Internal manager
+TypeContact_lmdbattestation_external_SIGNATORY=Client signatory
+TypeContact_lmdbattestation_external_RECIPIENT=Recipient
+LmdbAttestationEvent_contacts=Contacts updated for attestation %s
+
+LmdbFeatureEmbeddedDocumentForms=Document forms embedded in titles
+LmdbFeatureEmbeddedDocumentFormsDescription=Native file/link add buttons in titles, available since Dolibarr 21.
+LmdbRequires21EmbeddedDocumentForms=Dolibarr 21 is required for embedded forms; Dolibarr 20 keeps its classic native forms.
