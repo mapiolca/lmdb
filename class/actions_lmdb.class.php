@@ -318,7 +318,7 @@ class ActionsLmdb
 	{
 		$elements = array();
 		foreach (array('lmdbattestation','lmdbattestationnumber') as $element) {
-			$elements[$element] = array('type'=>$element === 'lmdbattestation' ? 'element' : 'objectnumber', 'icon'=>'fa-file-signature', 'lang'=>'lmdb@lmdb', 'tooltip'=>'LmdbAttestationSharingInfo', 'enable'=>'isModEnabled("lmdb")', 'input'=>array('global'=>array('showhide'=>true,'hide'=>true,'del'=>true)));
+			$elements[$element] = array('type'=>$element === 'lmdbattestation' ? 'element' : 'objectnumber', 'icon'=>'fa-certificate_fa_blue', 'lang'=>'lmdb@lmdb', 'tooltip'=>'LmdbAttestationSharingInfo', 'enable'=>'isModEnabled("lmdb")', 'input'=>array('global'=>array('showhide'=>true,'hide'=>true,'del'=>true)));
 		}
 		return array('lmdb'=>array('sharingelements'=>$elements,'sharingmodulename'=>array('lmdbattestation'=>'lmdb','lmdbattestationnumber'=>'lmdb'),'dictionary'=>array()));
 	}

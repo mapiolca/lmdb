@@ -22,7 +22,7 @@ class LmdbAttestation extends CommonObject
 	public $element = 'lmdbattestation';
 	public $table_element = 'lmdb_attestation';
 	public $TRIGGER_PREFIX = 'LMDB_ATTESTATION';
-	public $picto = 'fa-file-signature';
+	public $picto = 'fa-certificate_fa_blue';
 	public $ismultientitymanaged = 1;
 	public $isextrafieldmanaged = 0;
 	public $fk_soc = 0;
@@ -63,7 +63,7 @@ class LmdbAttestation extends CommonObject
 		$fields = array(
 			'rowid'=>array('enabled'=>1,'position'=>1,'type'=>'integer','label'=>'ID','visible'=>0),
 			'entity'=>array('enabled'=>1,'position'=>2,'type'=>'integer','label'=>'Entity','visible'=>0),
-			'ref'=>array('enabled'=>1,'position'=>3,'type'=>'varchar(128)','label'=>'Ref','visible'=>1),
+			'ref'=>array('enabled'=>1,'position'=>3,'type'=>'varchar(128)','label'=>'Ref','visible'=>1,'notnull'=>1,'default'=>'(PROV)'),
 			'fk_soc'=>array('enabled'=>1,'position'=>4,'type'=>'integer','label'=>'ThirdParty','visible'=>1,'notnull'=>1),
 			'fk_version'=>array('enabled'=>1,'position'=>5,'type'=>'integer','label'=>'LmdbAttestedVersion','visible'=>1,'notnull'=>1),
 			'date_attestation'=>array('enabled'=>1,'position'=>6,'type'=>'date','label'=>'LmdbAttestationDate','visible'=>1,'notnull'=>1),
@@ -162,7 +162,7 @@ class LmdbAttestation extends CommonObject
 		global $conf;
 		if (!isModEnabled('lmdb') || !LmdbCompatibility::isAttestationSupported() || !$user->hasRight('lmdb', 'lmdbattestation', 'read') || !$user->hasRight('lmdb', 'lmdbattestation', 'write') || !$this->validateInputs($user)) { return -1; }
 		$this->entity = (int) $conf->entity;
-		$this->ref = '(PROV'.bin2hex(random_bytes(8)).')';
+		$this->ref = '(PROV)';
 		$this->status = self::STATUS_DRAFT;
 		$this->snapshot_data = '';
 		$this->model_pdf = getDolGlobalString('LMDB_ATTESTATION_ADDON_PDF', 'loifinance');

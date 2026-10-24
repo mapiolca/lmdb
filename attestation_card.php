@@ -30,6 +30,7 @@ $reshook = $hookmanager->executeHooks('doActions',$parameters,$object,$action);
 if ($reshook < 0) { setEventMessages($hookmanager->error,$hookmanager->errors,'errors'); }
 if (!$reshook && in_array($action,array('add','save','confirm_validate','confirm_delete','confirm_cancel','builddoc'),true)) {
 	if ($_SERVER['REQUEST_METHOD'] !== 'POST') { accessforbidden(); }
+	if (strpos($action, 'confirm_') === 0 && GETPOST('confirm','alpha') !== 'yes') { header('Location: '.$cardurl.'?id='.$id); exit; }
 	$result = -1;
 	if ($action === 'add' || $action === 'save') {
 		if (!$permissiontoadd || ($action === 'save' && (!$owner || (int)$object->status !== 0))) { accessforbidden(); }
@@ -107,7 +108,7 @@ if ($action === 'create' || $action === 'edit') {
 	foreach (array('fk_soc','fk_version','date_attestation','date_acquisition','date_start','client_representative','license_number') as $key) {
 		$field=$object->fields[$key];
 		print '<tr><td class="titlefield'.(!empty($field['notnull'])?' fieldrequired':'').'">'.$langs->trans($field['label']).'</td><td>';
-		if ($key==='fk_soc') { print $form->select_thirdparty_list($object->fk_soc,'fk_soc','',1,0,1);
+		if ($key==='fk_soc') { print $form->select_thirdparty_list($object->fk_soc,'fk_soc','',1,0,0);
 		} elseif ($key==='fk_version') { $choices=LmdbAttestationVersion::choices($db,$conf->entity); if ($choices===false) { dol_print_error($db); } else { print $form->selectarray('fk_version',$choices,$object->fk_version,1); print ajax_combobox('fk_version'); }
 		} elseif ($field['type']==='date') { print $form->selectDate($object->{$key} ?: ($key==='date_attestation'?dol_now():''),$key,0,0,1,'',1,0);
 		} else { print $object->showInputField($field,$key,$object->{$key}); }
@@ -122,10 +123,9 @@ if ($action === 'create' || $action === 'edit') {
 	if ((int)$object->status===0) { if ($version->fetch($object->fk_version)>0) { $versionlabel=$version->version; } }
 	else { try { $snapshot=$object->legalSnapshot(); $versionlabel=$snapshot['version']; } catch (RuntimeException $e) { setEventMessages($langs->trans($e->getMessage()),null,'errors'); } }
 	print '<div class="div-table-responsive-no-min"><table class="border centpercent">';
-	print '<tr><td class="titlefield">'.$langs->trans('ThirdParty').'</td><td>'.$object->thirdparty->getNomUrl(1).'</td></tr>';
 	print '<tr><td>'.$langs->trans('LmdbAttestedVersion').'</td><td>'.dol_escape_htmltag($versionlabel).'</td></tr>';
 	foreach (array('date_attestation','date_acquisition','date_start') as $key) { print '<tr><td>'.$langs->trans($object->fields[$key]['label']).'</td><td>'.($object->{$key}?dol_print_date($object->{$key},'day'):'').'</td></tr>'; }
-	print '<tr><td>'.$langs->trans('Status').'</td><td>'.$object->getLibStatut(5).'</td></tr></table></div>'.dol_get_fiche_end();
+	print '</table></div>'.dol_get_fiche_end();
 	print '<div class="tabsAction">';
 	if ($owner) {
 		if ((int)$object->status===0 && $permissiontoadd) { print '<a class="butAction" href="'.$cardurl.'?id='.$id.'&action=edit">'.$langs->trans('Modify').'</a>'; }
@@ -139,7 +139,7 @@ if ($action === 'create' || $action === 'edit') {
 	print '</div>';
 	if (in_array($action,array('validate','delete','cancel'),true)) {
 		$labels=array('validate'=>'Validate','delete'=>'Delete','cancel'=>'Cancel');
-		print $form->formconfirm($cardurl.'?id='.$id,$langs->trans($labels[$action]),$langs->trans('LmdbAttestationConfirm_'.$action),'confirm_'.$action,'',0,1);
+		print $form->formconfirm($cardurl.'?id='.$id,$langs->trans($labels[$action]),$langs->trans('LmdbAttestationConfirm_'.$action),'confirm_'.$action,'',0,0);
 	}
 	if ($action==='presend') { require __DIR__.'/lib/lmdb_attestation_mailform.php'; }
 	else {

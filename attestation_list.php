@@ -77,7 +77,7 @@ foreach ($selectedentities as $eid) { $param.='&search_entity[]='.$eid; }
 llxHeader('',$langs->trans('LmdbAttestationList'));
 print '<form method="post" id="searchFormList" action="'.$_SERVER['PHP_SELF'].'"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="sortfield" value="'.$sortfield.'"><input type="hidden" name="sortorder" value="'.$sortorder.'">';
 $new=$user->hasRight('lmdb','lmdbattestation','write')?dolGetButtonTitle($langs->trans('LmdbNewAttestation'),'','fa fa-plus-circle',dol_buildpath('/lmdb/attestation_card.php',1).'?action=create'):'';
-print_barre_liste($langs->trans('LmdbAttestationList'),$page,$_SERVER['PHP_SELF'],$param,$sortfield,$sortorder,'',$db->num_rows($res),$total,'',0,$new,'', $limit);
+print_barre_liste($langs->trans('LmdbAttestationList'),$page,$_SERVER['PHP_SELF'],$param,$sortfield,$sortorder,'',$db->num_rows($res),$total,$object->picto,0,$new,'', $limit);
 $selectedfields=$form->multiSelectArrayWithCheckbox('selectedfields',$arrayfields,$varpage,$conf->main_checkbox_left_column,1);
 $visible=array_filter($arrayfields,static function ($field) { return !empty($field['checked']); });
 print '<div class="div-table-responsive"><table class="tagtable liste centpercent"><tr class="liste_titre_filter">';

@@ -17,6 +17,7 @@ global $id, $action;
 
 $lmdbAdminPage=true;
 require __DIR__.'/../lib/lmdb_attestation_bootstrap.php';
+$langs->load('admin');
 require_once __DIR__.'/../lib/lmdb.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formadmin.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
@@ -99,7 +100,7 @@ print '</table></div><div class="center"><button class="button" type="submit">'.
 require_once __DIR__.'/../core/modules/lmdb/modules_lmdbattestation.php';
 require_once __DIR__.'/../core/modules/lmdb/mod_lmdbattestation_standard.php';
 $models=ModelePDFLmdbattestation::liste_modeles($db);
-print load_fiche_titre($langs->trans('PDFModules'));
+print load_fiche_titre($langs->trans('ModelModules'));
 print '<div class="div-table-responsive-no-min"><table class="noborder centpercent"><tr class="liste_titre"><td>'.$langs->trans('Name').'</td><td>'.$langs->trans('Status').'</td><td>'.$langs->trans('Default').'</td></tr><tr class="oddeven"><td>loifinance</td><td>'.yn(is_array($models)&&isset($models['loifinance'])).'</td><td>';
 foreach (array('setpdf'=>'Default','disablepdf'=>'Disable') as $operation=>$label) { print '<form class="inline-block" method="post"><input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="action" value="'.$operation.'"><button class="button small" type="submit">'.$langs->trans($label).'</button></form>'; }
 print '</td></tr></table></div>';

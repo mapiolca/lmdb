@@ -6,6 +6,8 @@ class LmdbAttestationInstaller
 	/** @return int 1 on success, -1 on failure; caller surfaces database errors. */
 	public static function install($db, $entity)
 	{
+		// Normalize only the provisional references created by the initial 2.0.0 preview.
+		if (!$db->query("UPDATE ".MAIN_DB_PREFIX."lmdb_attestation SET ref=CONCAT('(PROV',rowid,')') WHERE entity=".(int)$entity." AND status=0 AND ref REGEXP '^[(]PROV[0-9a-f]{16}[)]$'")) { return -1; }
 		$defaults = array('LMDB_ATTESTATION_ADDON'=>'mod_lmdbattestation_standard','LMDB_ATTESTATION_MASK'=>'ATLF-{yyyy}-{0000}', 'LMDB_ATTESTATION_ADDON_PDF'=>'loifinance');
 		foreach ($defaults as $key=>$value) {
 			$res = $db->query("SELECT rowid FROM ".MAIN_DB_PREFIX."const WHERE name='".$db->escape($key)."' AND entity=".(int)$entity);

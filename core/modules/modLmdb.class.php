@@ -147,7 +147,7 @@ class modLmdb extends DolibarrModules
 			array('LmdbAttestationList', '/lmdb/attestation_list.php', 'read', ',fk_leftmenu=lmdbattestation'),
 		);
 		foreach ($menus as $index=>$menu) {
-			$this->menu[] = array('fk_menu'=>'fk_mainmenu=tools'.$menu[3], 'type'=>'left', 'titre'=>$menu[0], 'mainmenu'=>'tools', 'leftmenu'=>$index === 0 ? 'lmdbattestation' : 'lmdbattestation'.$index, 'url'=>$menu[1], 'langs'=>'lmdb@lmdb', 'position'=>450050+$index, 'enabled'=>'isModEnabled("lmdb") && isModEnabled("societe")', 'perms'=>'$user->hasRight("lmdb", "lmdbattestation", "read")'.($menu[2] === 'write' ? ' && $user->hasRight("lmdb", "lmdbattestation", "write")' : ''), 'target'=>'', 'user'=>0);
+			$this->menu[] = array('fk_menu'=>'fk_mainmenu=tools'.$menu[3], 'type'=>'left', 'titre'=>$menu[0], 'mainmenu'=>'tools', 'leftmenu'=>$index === 0 ? 'lmdbattestation' : 'lmdbattestation'.$index, 'url'=>$menu[1], 'langs'=>'lmdb@lmdb', 'position'=>450050+$index, 'prefix'=>$index === 0 ? img_picto('', 'fa-certificate_fa_blue', 'class="pictofixedwidth valignmiddle paddingright"') : '', 'enabled'=>'isModEnabled("lmdb") && isModEnabled("societe")', 'perms'=>'$user->hasRight("lmdb", "lmdbattestation", "read")'.($menu[2] === 'write' ? ' && $user->hasRight("lmdb", "lmdbattestation", "write")' : ''), 'target'=>'', 'user'=>0);
 		}
 		$this->export_code[1] = 'lmdbattestation';
 		$this->export_label[1] = 'LmdbAttestationList';
