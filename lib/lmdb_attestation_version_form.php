@@ -4,9 +4,11 @@
 /** @var Conf $conf */
 /** @var Translate $langs */
 /** @var Form $form */
-/** @var LmdbAttestationVersion $catalogueversion */
 global $conf, $langs, $form;
 // The catalogue object is inherited from the including page scope.
+if (!isset($catalogueversion) || !($catalogueversion instanceof LmdbAttestationVersion)) {
+	throw new LogicException('Catalogue form requires a loaded catalogue object');
+}
 
 $versiontitle = $langs->trans($catalogueversion->id > 0 ? 'Modify' : 'Add').' — '.$langs->trans('LmdbAttestedVersion');
 print '<div id="lmdb-version-dialog" title="'.dol_escape_htmltag($versiontitle).'"'.(!empty($conf->use_javascript_ajax) ? ' style="display:none"' : '').'>';
