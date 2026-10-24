@@ -43,7 +43,7 @@ Contrats examinés dans `htdocs/core/` : `CommonObject` (CRUD, validation, index
 
 Déploiement du code effectué via le navigateur intégré et cPanel ControlGit : dépôt **DEVELOP - LMDB**, branche `feat/attestations-conformite-loi-finance`, dans le répertoire du module servi par develop. L’état initial était la branche `fix/v24-autosend-invoice-disabled`, commit `02be1b77fda5fd41cea9f5f7c589fa2cd184d581`. La bascule de branche a été confirmée par le SHA affiché dans cPanel. Le dépôt étant directement dans le répertoire servi, aucune tâche `.cpanel.yml` supplémentaire n’est nécessaire.
 
-Instance constatée : **Dolibarr 25.0.0-alpha, PHP 8.3.36, Multicompany actif**, entité TEST 1. La révision du core et la version du module tiers Multicompany ne sont pas connues. Le dernier code fonctionnel déployé et vérifié est `99dc4a22cd679ee16ffaf4f4d011ea1382e8a8ed` ; les mises à jour documentaires suivantes ne changent pas ces résultats.
+Instance constatée : **Dolibarr 25.0.0-alpha, PHP 8.3.36, Multicompany actif**, entité TEST 1. La révision du core et la version du module tiers Multicompany ne sont pas connues. Le dernier code fonctionnel déployé et vérifié est `64c5b8e90aca584b81b4adf8c5e5f78f36330149` ; les mises à jour documentaires suivantes ne changent pas ces résultats.
 
 Essais réels du 24 octobre 2026, dans le navigateur intégré :
 
@@ -60,3 +60,13 @@ Essais réels du 24 octobre 2026, dans le navigateur intégré :
 État final : **LMDB reste activé sur develop à la demande de l’utilisateur**. Le spécimen 1 est annulé, sa version catalogue désactivée. Les quatre valeurs fictives de signataire, fonction, ville et signature ont été vidées par l’interface native (constantes conservées avec chaîne vide) ; le masque et le modèle PDF restent inchangés. La signature de recette privée et le PDF historique du spécimen sont conservés. L’auto-événement UPDATE est revenu à son état initial désactivé ; CREATE et DELETE sont restés désactivés. Le blocage global temporaire des emails a été retiré pour retrouver l’état initial. Aucun courriel n’a été envoyé.
 
 Restent non exécutés sur instance : comptes avec droits partiels, API et export, partages et documents entre deux entités, validations concurrentes MySQL/MariaDB, Notifications effectivement envoyées et cycle complet de conservation de configuration. Les contrôles locaux simulés ne remplacent pas ces essais. La matrice d’instances v20–v25 et PHP 8.0 reste à couvrir avant une validation générale de compatibilité. La PR reste en brouillon.
+
+## Complément de recette — blocs de réglage natifs
+
+Correctif `64c5b8e` du 24 octobre 2026, même instance develop et même PHP que ci-dessus :
+
+- Numérotation, puis Modèles de document, affichés en tête des réglages. Colonnes natives, aide du masque, état du modèle et choix par défaut ; suppression du masque redondant dans les paramètres de l’émetteur.
+- Masque `REC{yy}{mm}-{00000}` enregistré par le nouveau formulaire, exemple `REC2610-00001`, persistance après rechargement. Masque `SANS-COMPTEUR` refusé avec « Erreur sur le masque », sans écraser la valeur enregistrée. Masque initial `ATLF-{yyyy}-{0000}` restauré, exemple `ATLF-2026-0002` tenant compte du spécimen conservé.
+- Modèle PDF désactivé puis réactivé par son interrupteur ; état final actif et modèle par défaut inchangé. Aucun objet créé ni courriel envoyé pendant ce complément de recette. LMDB reste activé.
+- Syntaxe PHP, PHPStan niveau 5 et régression locale réussis. Quatre scénarios supplémentaires exécutent `get_next_value()` natif avec SQLite : masque date/compteur, aperçu répété sans réservation/verrou, code du tiers et exclusion d’une entité inaccessible. Ces scénarios ne prouvent pas les verrous MySQL ni un partage Multicompany réel.
+- Pattern lu dans `htdocs/admin/propal.php` et `core/modules/propale/mod_propale_saphir.php` des sources locales Dolibarr 24.0.1 ; contrat de masque et API également lus au tag 20.0.0 (`697bf01970740a3339cd99cf055b4428fc5e051c`). Les anciennes traductions incluent déjà les codes date dans `GenericMaskCodes`, ce qui évite d’afficher la clé récente `GenericMaskCodes1` brute. Aucun helper natif recopié dans le module.

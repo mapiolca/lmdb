@@ -33,6 +33,8 @@ img/lmdb.png
 
 Dans **Outils → Attestation de conformité Loi Finance**, créer un brouillon en sélectionnant le tiers, la version et la date d’attestation. Le catalogue des versions est administré depuis **Configuration → Attestations** : aucune version n’est déclarée attestable automatiquement.
 
+Les réglages présentent d’abord **Numérotation**, puis **Modèles de document**, avec les colonnes et interrupteurs natifs. Le masque se saisit dans la description du modèle de numérotation, avec l’aide Dolibarr et un exemple calculé sans réserver de référence. Le masque est enregistré par entité ; les références déjà attribuées restent inchangées.
+
 Configurer le représentant de l’émetteur, sa qualité, le lieu et une signature visuelle PNG. Le brouillon porte la référence `(PROV{ID})`. La validation réserve une référence par le modèle de numérotation natif et fige les informations légales du tiers, de l’émetteur, de la version et la signature. La signature visuelle n’est pas une signature électronique cryptographique. Une attestation validée est immuable ; elle peut être annulée, puis remplacée par une nouvelle attestation.
 
 Le modèle PDF `loifinance` reprend les deux volets du [modèle fiscal BOI-LETTRE-000242 du 25 mars 2026](https://bofip.impots.gouv.fr/bofip/10692-PGP.html/identifiant=BOI-LETTRE-000242-20260325). Le client complète et signe le volet 2 hors ligne ; l’ensemble signé peut être joint en PDF. Les deux volets utilisent les en-têtes documentaires Dolibarr : logo, référence, date, émetteur et destinataire. Les deux volets sont nécessaires. L’activation du module ne constitue pas une certification d’une version de Dolibarr : l’émetteur reste responsable des versions et périmètres qu’il atteste.
