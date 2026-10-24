@@ -41,6 +41,8 @@ Contrats examinés dans `htdocs/core/` : `CommonObject` (CRUD, validation, index
 
 ## Recette distante
 
-En attente du déploiement et d’une session develop authentifiée. Aucun essai distant du nouveau code n’est encore revendiqué.
+Déploiement du code effectué via le navigateur intégré et cPanel ControlGit : dépôt **DEVELOP - LMDB**, branche `feat/attestations-conformite-loi-finance`, dans le répertoire du module servi par develop. L’état initial était la branche `fix/v24-autosend-invoice-disabled`, commit `02be1b77fda5fd41cea9f5f7c589fa2cd184d581`. La bascule de branche a été confirmée par le SHA affiché dans cPanel. Le dépôt étant directement dans le répertoire servi, aucune tâche `.cpanel.yml` supplémentaire n’est nécessaire.
+
+La session Dolibarr **25.0.0-alpha + Multicompany** a expiré avant l’activation et la recette ; reconnexion utilisateur demandée. Aucune activation, modification de réglages métier, création d’attestation distante ni émission de courriel n’a été effectuée. La version PHP et la révision core réellement exécutées sur develop restent à relever après connexion. Le checkout cPanel ne vaut pas preuve d’un parcours HTTP fonctionnel : aucun essai distant du nouveau code n’est revendiqué. La branche de recette est conservée sur develop.
 
 À couvrir : activation/réactivation sans perte des réglages, catalogue, brouillon/édition/validation, génération/régénération, lecture/téléchargement, upload PDF/MIME, Agenda configurable sans doublon et lien résoluble, modèles de courriel et aperçu, absence d’envoi réel, pagination/filtres/colonnes, CSRF, comptes avec droits partiels et deux entités Multicompany. Tester aussi API et export avec leurs permissions dédiées. Conserver l’état initial des réglages modifiés temporairement.

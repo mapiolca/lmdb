@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 		foreach ($settingkeys as $key=>$label) { if (dolibarr_set_const($db,$key,GETPOST($key,'alphanohtml'),'chaine',0,'',(int)$conf->entity)<=0) { $result=-1; } }
 		if (isset($_FILES['signature']['tmp_name']) && is_string($_FILES['signature']['tmp_name']) && $_FILES['signature']['tmp_name']!=='') {
 			$temp=$_FILES['signature']['tmp_name'];
-			if (!function_exists('imagecreatefrompng') || !is_uploaded_file($temp) || (new finfo(FILEINFO_MIME_TYPE))->file($temp)!=='image/png' || filesize($temp)>2*1024*1024) { $result=-1; }
+			if (!class_exists('finfo') || !function_exists('imagecreatefrompng') || !is_uploaded_file($temp) || (new finfo(FILEINFO_MIME_TYPE))->file($temp)!=='image/png' || filesize($temp)>2*1024*1024) { $result=-1; }
 			else {
 				$info=getimagesize($temp);
 				if (!$info || $info[0]>3000 || $info[1]>3000) { $result=-1; }

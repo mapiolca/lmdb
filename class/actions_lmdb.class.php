@@ -360,15 +360,20 @@ class ActionsLmdb
 		if (!is_object($object) || !($object instanceof LmdbAttestation)) { return 0; }
 		if (!$user->hasRight('lmdb','lmdbattestation','write') || (int)$object->entity !== (int)$conf->entity || (int)$object->status !== LmdbAttestation::STATUS_VALIDATED) { accessforbidden(); }
 		$dir = $object->documentDirectory(true);
-		if ($dir === false) { accessforbidden(); }
+		if ($dir === false || !LmdbCompatibility::isFeatureAvailable('attestation_pdf_upload') || $_SERVER['REQUEST_METHOD'] !== 'POST') { accessforbidden(); }
+		$hasfile=false;
 		foreach ($_FILES as $file) {
 			$temps = is_array($file['tmp_name']) ? $file['tmp_name'] : array($file['tmp_name']);
 			$names = is_array($file['name']) ? $file['name'] : array($file['name']);
 			foreach ($temps as $key=>$temp) {
 				if ($temp === '') { continue; }
-				if (!isset($names[$key]) || strtolower(pathinfo($names[$key],PATHINFO_EXTENSION)) !== 'pdf' || (new finfo(FILEINFO_MIME_TYPE))->file($temp) !== 'application/pdf') { accessforbidden(); }
+				$hasfile=true;
+				if (!is_uploaded_file($temp) || !isset($names[$key]) || strtolower(pathinfo($names[$key],PATHINFO_EXTENSION)) !== 'pdf' || (new finfo(FILEINFO_MIME_TYPE))->file($temp) !== 'application/pdf') { accessforbidden(); }
 			}
 		}
+		if (!$hasfile) { accessforbidden(); } // Raw streamed uploads cannot bypass MIME inspection.
+		// Native collision checks precede mask application: retain the checked filename.
+		$parameters['options']['saving_doc_mask'] = '';
 		$parameters['options']['upload_dir'] = $dir.'/';
 		$parameters['options']['upload_url'] = DOL_URL_ROOT.'/document.php?modulepart=lmdb&entity='.(int)$object->entity.'&file='.rawurlencode($object->ref).'/';
 		$parameters['options']['accept_file_types'] = '/\.pdf$/i';

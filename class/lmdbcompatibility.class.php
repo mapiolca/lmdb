@@ -260,7 +260,8 @@ class LmdbCompatibility
 		if (!self::isPhpVersionAtLeast('8.0.0')) { $reasons[] = 'RequiresPhp80'; }
 		if (!isModEnabled('societe')) { $reasons[] = 'LmdbRequiresThirdparty'; }
 		$features['individual_attestations'] = array('code'=>'individual_attestations','label'=>'LmdbFeatureAttestations','description'=>'LmdbFeatureAttestationsDescription','min_dolibarr'=>'20.0.0','core_available_from'=>'20.0.0','module_available_from'=>'20.0.0','min_php'=>'8.0.0','compatibility_check'=>"Dolibarr >= 20; PHP >= 8.0; isModEnabled('societe')",'available'=>self::isAttestationSupported(),'reasons'=>$reasons);
-		$features['attestation_signature_image'] = array_replace($features['individual_attestations'], array('code'=>'attestation_signature_image','label'=>'LmdbFeatureSignature','available'=>self::isAttestationSupported() && function_exists('imagecreatefrompng') && function_exists('imagepng'),'reasons'=>array_merge($reasons,function_exists('imagecreatefrompng') && function_exists('imagepng') ? array() : array('LmdbRequiresGdPng'))));
+		$features['attestation_signature_image'] = array_replace($features['individual_attestations'], array('code'=>'attestation_signature_image','label'=>'LmdbFeatureSignature','available'=>self::isAttestationSupported() && class_exists('finfo') && function_exists('imagecreatefrompng') && function_exists('imagepng'),'reasons'=>array_merge($reasons,class_exists('finfo') && function_exists('imagecreatefrompng') && function_exists('imagepng') ? array() : array('LmdbRequiresGdPng'))));
+		$features['attestation_pdf_upload']=array_replace($features['individual_attestations'],array('code'=>'attestation_pdf_upload','label'=>'LmdbFeaturePdfUpload','available'=>self::isAttestationSupported() && class_exists('finfo'),'reasons'=>array_merge($reasons,class_exists('finfo')?array():array('LmdbRequiresFileinfo'))));
 		return $features;
 	}
 

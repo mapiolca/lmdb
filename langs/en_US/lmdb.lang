@@ -293,3 +293,6 @@ LmdbAttestationFooterTooHigh=The configured footer leaves insufficient space for
 LmdbAttestationConfirm_validate=Validate this attestation and permanently freeze its legal information?
 LmdbAttestationConfirm_delete=Permanently delete this draft?
 LmdbAttestationConfirm_cancel=Cancel this attestation? Its history will be retained.
+
+LmdbFeaturePdfUpload=PDF attachments
+LmdbRequiresFileinfo=PHP Fileinfo is required to inspect actual file types.

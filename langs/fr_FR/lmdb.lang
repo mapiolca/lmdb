@@ -293,3 +293,6 @@ LmdbAttestationFooterTooHigh=Le pied de page configuré ne laisse pas assez de p
 LmdbAttestationConfirm_validate=Valider cette attestation et figer définitivement ses informations légales ?
 LmdbAttestationConfirm_delete=Supprimer définitivement ce brouillon ?
 LmdbAttestationConfirm_cancel=Annuler cette attestation ? Son historique sera conservé.
+
+LmdbFeaturePdfUpload=Fichiers joints PDF
+LmdbRequiresFileinfo=Extension PHP Fileinfo requise pour contrôler le type réel des fichiers.
