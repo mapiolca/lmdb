@@ -33,6 +33,6 @@ Ces lectures étayent une proposition de texte ; elles ne prouvent ni la conform
 
 ## Installation et conservation
 
-Les nouvelles entrées sont inactives. Les entrées 23.0/24.0 existantes ne sont complétées que si elles appartiennent à l’entité concernée, sont inactives, ont les deux textes vides et ne sont référencées par aucune attestation. Un seul texte personnalisé, une activation ou une utilisation bloque le préremplissage. Les instantanés des attestations ne sont pas réécrits.
+Les nouvelles entrées sont inactives. Les entrées 23.0/24.0 existantes ne sont complétées que si elles appartiennent à l’entité concernée, sont inactives, ont les deux textes vides et ne sont référencées par aucune attestation. Un seul texte personnalisé, une activation ou une utilisation bloque le préremplissage. Les instantanés des attestations ne sont pas réécrits. Les textes de référence exacts installés avec des retours échappés sont normalisés uniquement si l’entrée reste inactive et inutilisée.
 
 Les textes sont enregistrés dans la langue de l’administration au moment du premier préremplissage et restent ensuite éditables par l’émetteur. Une réactivation ne retraduit pas et ne remplace pas les textes persistés.

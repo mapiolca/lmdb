@@ -159,6 +159,15 @@ checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,4)<0 && $db->
 $db->failSql=''; $db->failCommit=true;
 checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,4)<0 && $db->num_rows($db->query('SELECT rowid FROM fixture_lmdb_attestation_version WHERE entity=4'))===0,'Commit failure does not leave a partially seeded catalogue');
 $db->failCommit=false;
+$originalcovered=$langs->tab_translate['LmdbAttestationDefaultCoveredScope'];
+$originalexcluded=$langs->tab_translate['LmdbAttestationDefaultExcludedScope'];
+$langs->tab_translate['LmdbAttestationDefaultCoveredScope']=str_replace("\n",'\\n',$originalcovered);
+$langs->tab_translate['LmdbAttestationDefaultExcludedScope']=str_replace("\n",'\\n',$originalexcluded);
+checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,4)>0 && $db->fetch_object($db->query('SELECT covered_scope FROM fixture_lmdb_attestation_version WHERE entity=4 LIMIT 1'))->covered_scope===$originalcovered,'Cached language strings are normalized before persistence');
+$db->query("UPDATE fixture_lmdb_attestation_version SET covered_scope='".$db->escape($langs->tab_translate['LmdbAttestationDefaultCoveredScope'])."',excluded_scope='".$db->escape($langs->tab_translate['LmdbAttestationDefaultExcludedScope'])."' WHERE entity=4");
+checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,4)>0 && $db->fetch_object($db->query('SELECT covered_scope FROM fixture_lmdb_attestation_version WHERE entity=4 LIMIT 1'))->covered_scope===$originalcovered,'Exact unused inactive defaults with escaped line breaks are repaired');
+$langs->tab_translate['LmdbAttestationDefaultCoveredScope']=$originalcovered;
+$langs->tab_translate['LmdbAttestationDefaultExcludedScope']=$originalexcluded;
 $db->query("DELETE FROM fixture_lmdb_attestation_version WHERE version IN ('23.0','24.0')");
 
 // Only thirdparty hydration is simulated here; object/rights/entity fetching is native.

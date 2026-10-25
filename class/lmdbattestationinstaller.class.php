@@ -70,6 +70,9 @@ class LmdbAttestationInstaller
 		$langs->load('lmdb@lmdb');
 		$covered = $langs->transnoentitiesnoconv('LmdbAttestationDefaultCoveredScope');
 		$excluded = $langs->transnoentitiesnoconv('LmdbAttestationDefaultExcludedScope');
+		// Translate cache entries may retain escaped line breaks from .lang files.
+		$covered = str_replace('\\n', "\n", $covered);
+		$excluded = str_replace('\\n', "\n", $excluded);
 		if ((int)$entity <= 0 || $covered === 'LmdbAttestationDefaultCoveredScope' || $excluded === 'LmdbAttestationDefaultExcludedScope' || !$db->begin()) { return -1; }
 		foreach (array('23.0'=>'2026-02-28', '24.0'=>'2026-08-20') as $version=>$date) {
 			$sql = "INSERT INTO ".MAIN_DB_PREFIX."lmdb_attestation_version (entity,version,date_release,covered_scope,excluded_scope,active) SELECT ".(int)$entity.",'".$version."','".$date."','".$db->escape($covered)."','".$db->escape($excluded)."',0 WHERE NOT EXISTS (SELECT rowid FROM ".MAIN_DB_PREFIX."lmdb_attestation_version WHERE entity=".(int)$entity." AND version='".$version."')";
@@ -77,8 +80,9 @@ class LmdbAttestationInstaller
 		}
 		// Backfill only untouched, inactive and unused preview seeds. Never rewrite
 		// a customized entry or a scope already referenced by an attestation.
+		// Also normalize the exact default texts installed with escaped line breaks.
 		$table = MAIN_DB_PREFIX.'lmdb_attestation_version';
-		$sql = "UPDATE ".$table." SET covered_scope='".$db->escape($covered)."',excluded_scope='".$db->escape($excluded)."' WHERE entity=".(int)$entity." AND version IN ('23.0','24.0') AND active=0 AND COALESCE(covered_scope,'')='' AND COALESCE(excluded_scope,'')='' AND NOT EXISTS (SELECT a.rowid FROM ".MAIN_DB_PREFIX."lmdb_attestation a WHERE a.fk_version=".$table.".rowid)";
+		$sql = "UPDATE ".$table." SET covered_scope='".$db->escape($covered)."',excluded_scope='".$db->escape($excluded)."' WHERE entity=".(int)$entity." AND version IN ('23.0','24.0') AND active=0 AND ((COALESCE(covered_scope,'')='' AND COALESCE(excluded_scope,'')='') OR (covered_scope='".$db->escape(str_replace("\n",'\\n',$covered))."' AND excluded_scope='".$db->escape(str_replace("\n",'\\n',$excluded))."')) AND NOT EXISTS (SELECT a.rowid FROM ".MAIN_DB_PREFIX."lmdb_attestation a WHERE a.fk_version=".$table.".rowid)";
 		if (!$db->query($sql)) { $db->rollback(); return -1; }
 		if (!$db->commit()) { $db->rollback(); return -1; }
 		return 1;
