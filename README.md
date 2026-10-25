@@ -2,7 +2,7 @@
 
 Module externe Dolibarr pour Les Métiers du Bâtiment.
 
-Version courante : **1.2.2**.
+Version courante : **2.0.0**.
 
 ## Compatibilité
 
@@ -20,13 +20,40 @@ htdocs/custom/lmdb
 
 Activer ensuite le module **LMDB** depuis la liste des modules Dolibarr.
 
-Le pictogramme du module est fourni dans :
+Le logo de la société est fourni sous les deux noms attendus par les versions Dolibarr :
 
 ```text
 img/object_lmdb.png
+img/lmdb.png
 ```
 
 ## Fonctionnalités
+
+### Attestations individuelles de conformité Loi Finance
+
+Dans **Outils → Attestation de conformité Loi Finance**, créer un brouillon en sélectionnant le tiers, la version et la date d’attestation. Le catalogue des versions est administré depuis **Configuration → Attestations** : aucune version n’est déclarée attestable automatiquement. Le bouton **+** ouvre une modale d’ajout ; le crayon permet une modification préremplie. Les boutons Enregistrer/Annuler utilisent le pied natif des modales et les messages identifient chaque champ à compléter. Une nouvelle version reste désactivée jusqu’à son activation explicite. L’interrupteur natif change uniquement son état. La corbeille permet de supprimer une version inutilisée après confirmation ; toute attestation liée, même brouillon ou annulée, bloque la suppression.
+
+Les réglages présentent d’abord **Numérotation**, puis **Modèles de document**, avec les colonnes et interrupteurs natifs. Le modèle **Standard** utilise le format fixe `ATLF-{yyyy}-{0000}`. Le modèle **Advanced** permet de saisir un masque dans sa description, avec l’aide Dolibarr et un exemple calculé sans réserver de référence. Le choix s’effectue avec les interrupteurs natifs ; le masque Advanced reste conservé lorsque Standard est sélectionné. Le masque est enregistré par entité ; les références déjà attribuées restent inchangées.
+
+Configurer le représentant de l’émetteur, sa qualité et une signature visuelle PNG. Le lieu de signature reprend la ville des coordonnées natives de l’entité (`MAIN_INFO_SOCIETE_TOWN`, via `$mysoc->town`) ; il n’est pas saisi une seconde fois dans LMDB. Le brouillon porte la référence `(PROV{ID})`. La validation réserve une référence par le modèle de numérotation natif et fige les informations légales du tiers, de l’émetteur, de la version et la signature. La signature visuelle n’est pas une signature électronique cryptographique. Une attestation validée est immuable ; elle peut être annulée, puis remplacée par une nouvelle attestation.
+
+Le modèle PDF `loifinance` reprend les deux volets du [modèle fiscal BOI-LETTRE-000242 du 25 mars 2026](https://bofip.impots.gouv.fr/bofip/10692-PGP.html/identifiant=BOI-LETTRE-000242-20260325). Le client complète et signe le volet 2 hors ligne ; l’ensemble signé peut être joint en PDF. Les deux volets conservent les en-têtes documentaires Dolibarr : logo, référence et date. Les encadrés émetteur/destinataire figurent uniquement sur la première page. Les périmètres longs utilisent la place restante et se poursuivent sur les pages suivantes, sans déplacer le paragraphe entier ; le volet client commence toujours sur une nouvelle page. Le pied natif respecte les réglages de texte libre, de détails société et les hooks ; les paragraphes et signatures restent hors de sa zone réservée. Les deux volets sont nécessaires. L’activation du module ne constitue pas une certification d’une version de Dolibarr : l’émetteur reste responsable des versions et périmètres qu’il atteste.
+
+Les attestations utilisent le pictogramme certificat bleu et des confirmations en modales natives. Les caractéristiques de la fiche reprennent la disposition et les classes natives des champs Dolibarr. La bannière affiche la miniature de la première page du PDF, ouvrant son aperçu natif, lorsque la conversion Imagick est disponible et autorisée par les réglages Dolibarr ; le certificat reste affiché sinon. La fiche utilise les blocs et onglets natifs Notes, Fichiers joints et Événements/Agenda. Le formulaire classique de dépôt du PDF signé reste dans l’onglet Fichiers joints ; le glisser-déposer natif est activé sur les onglets compatibles, avec les mêmes droits et contrôles serveur. Les événements `LMDB_ATTESTATION_CREATE`, `LMDB_ATTESTATION_UPDATE` et `LMDB_ATTESTATION_DELETE` sont configurables dans l’administration native Agenda et Notifications. Le contexte `trigger_reason` distingue création, édition, validation, annulation et document. Aucun second événement Agenda n’est créé manuellement.
+
+L’envoi individuel depuis la fiche utilise `FormMail`, le contrôleur de courriel et le transport SMTP natifs, car il s’agit d’un document choisi par l’utilisateur, sans abonnement Notifications. Les modèles sont de type exact `lmdbattestation_send` et disposent des substitutions `__LMDB_ATTESTATION_REF__`, `__LMDB_ATTESTATION_VERSION__`, `__LMDB_ATTESTATION_DATE__`, `__LMDB_ATTESTATION_THIRDPARTY__` et `__LMDB_ATTESTATION_URL__`. Un registre empêche le rejeu d’une soumission et bloque un envoi interrompu en état « pending » ; vérifier sa livraison avant toute reprise manuelle. Aucun envoi automatique d’attestation ni nouveau cron n’est ajouté.
+
+La liste et l’onglet Agenda respectent la position native de la colonne d’actions (réglage global et préférence personnelle lorsque le core la fournit). La référence propose l’infobulle Ajax native lorsque cette option Dolibarr est activée : statut, tiers, version, dates, licence, représentant, émetteur et périmètre. Les informations validées proviennent de l’instantané ; les accès sont revérifiés lors du chargement.
+
+L’activation précharge les familles Dolibarr 23.0 et 24.0, désactivées, avec un périmètre fonctionnel de référence et des exclusions à vérifier et adapter par l’émetteur ([sources et limites](test/ATTESTATION_SCOPES.md)). Les dates de première publication proviennent du wiki officiel (28/02/2026 et 20/08/2026). Aucune entrée finale 25.0 n’est créée à partir de l’alpha. Une entrée existante conserve son contenu et son activation ; seules les entrées de préversion inactives, inutilisées et dont les deux périmètres sont vides reçoivent ces textes.
+
+L’onglet Contacts/Adresses utilise le formulaire et les liaisons natifs Dolibarr : Responsable interne, Signataire client et Destinataire. Les contacts externes sont exclusivement ceux du tiers de l’attestation, dans les entités accessibles. Les liens actifs sont proposés parmi les destinataires du courriel ; leur modification ne réécrit pas l’instantané légal. L’onglet Fichiers joints affiche les compteurs, la liste documentaire complète et les liens natifs, avec dépôt pour une attestation validée et droits distincts. La génération reste sur la fiche principale. Les formulaires intégrés aux titres sont disponibles dès Dolibarr 21 ; Dolibarr 20 conserve les formulaires classiques.
+
+Les permissions lecture, écriture, validation, annulation, génération, envoi, suppression, export et API sont distinctes. Les utilisateurs externes sont refusés. Les restrictions commerciales du tiers sont appliquées avant pagination. Les partages Multicompany de l’objet et de sa numérotation sont déclarés ; les modifications et envois s’effectuent dans l’entité propriétaire. Les documents restent dans le répertoire de cette entité, y compris pour une consultation depuis une autre entité. La lecture suffit pour télécharger un PDF existant ; la signature privée est protégée.
+
+Les fichiers joints sont limités aux PDF, contrôlés par MIME. L’API REST native expose les brouillons, validation, annulation et génération, avec les mêmes règles métier. Un export natif est déclaré. Les données légales figées dans `snapshot_data` constituent un instantané historique explicite ; les relations vivantes restent `fk_soc` et `fk_version`.
+
+Après mise à jour, réactiver LMDB dans chaque entité concernée pour installer les trois nouvelles tables, actualiser droits/menus et déclarer les événements, modèles et partages. L’initialisation conserve les réglages et modèles personnalisés existants. À la première mise à jour depuis la préversion 2.0.0 qui ne proposait qu’un modèle configurable, un masque personnalisé déjà enregistré sélectionne Advanced ; les choix suivants sont conservés sans migration répétée. Les validations exécutées et leurs limites sont détaillées dans [test/ATTESTATIONS.md](test/ATTESTATIONS.md).
 
 ### Programmation des emailings natifs
 
@@ -164,6 +191,7 @@ Les travaux planifiés (fréquence, activation et historique compris), constante
 Les onglets internes disponibles sont :
 
 - Configuration ;
+- Attestations ;
 - Compatibilité ;
 - À propos.
 

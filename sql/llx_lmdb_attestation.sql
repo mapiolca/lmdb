@@ -1,0 +1,26 @@
+-- Copyright (C) 2026 Pierre Ardoin. GPL-3.0-or-later.
+CREATE TABLE IF NOT EXISTS llx_lmdb_attestation (
+ rowid integer AUTO_INCREMENT PRIMARY KEY,
+ entity integer DEFAULT 1 NOT NULL,
+ ref varchar(128) NOT NULL,
+ fk_soc integer NOT NULL,
+ fk_version integer NOT NULL,
+ date_attestation date NOT NULL,
+ date_acquisition date,
+ date_start date,
+ client_representative varchar(255),
+ license_number varchar(128),
+ status integer DEFAULT 0 NOT NULL,
+ snapshot_data longtext,
+ model_pdf varchar(128),
+ last_main_doc varchar(255),
+ date_creation datetime NOT NULL,
+ date_validation datetime,
+ tms timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ fk_user_creat integer NOT NULL,
+ fk_user_modif integer,
+ fk_user_valid integer,
+ note_public text,
+ note_private text,
+ import_key varchar(14)
+) ENGINE=innodb;
