@@ -87,14 +87,14 @@ class pdf_loifinance extends CommonDocGenerator
 		$pdf->SetFont('', '', 9);
 		$pdf->MultiCell(180, 6, 'Modèle BOI-LETTRE-000242 du 25 mars 2026',0,'L');
 		$pdf->Ln(4);
-		$e = static function ($text) { return dol_escape_htmltag((string)$text); };
+		$e = static function ($text) { return dol_escape_htmltag((string)$text, 0, 1); };
 		// Use one loaded French Translate for all dates, including long date variants.
 		$date = static function ($timestamp) use ($french) { return (int)$timestamp > 0 ? dol_print_date((int)$timestamp, 'day', false, $french) : '________________'; };
 		$html = '<h3>I. Volet 1 — Éditeur ou intégrateur</h3>';
 		$html .= '<p>Je soussigné, <b>'.$e($data['signer']).'</b>, '.$e($data['signer_role']).', représentant légal de la société <b>'.$e($data['issuer_name']).'</b> ('.$e($data['issuer_id']).'), '.$e($data['issuer_address']).', '.$e($data['issuer_zip']).' '.$e($data['issuer_town']).', éditeur ou intégrateur du logiciel <b>Dolibarr ERP CRM</b>, atteste que les fonctionnalités de caisse de ce logiciel, mis sur le marché à compter du <b>'.$date($data['date_release']).'</b>, dans sa version <b>'.$e($data['version']).'</b>'.($data['license_number'] !== '' ? ', sous le numéro de licence '.$e($data['license_number']) : '').', satisfont aux conditions d’inaltérabilité, de sécurisation, de conservation et d’archivage des données en vue du contrôle de l’administration fiscale, prévues au 3° bis du I de l’article 286 du code général des impôts.</p>';
 		$html .= '<p><b>Bénéficiaire :</b> '.$e($data['client_name']).' ('.$e($data['client_id']).'), '.$e($data['client_address']).', '.$e($data['client_zip']).' '.$e($data['client_town']).'.</p>';
-		$html .= '<p><b>Périmètre couvert :</b><br>'.nl2br($e($data['covered_scope'])).'</p>';
-		$html .= '<p><b>Fonctionnalités non couvertes :</b><br>'.nl2br($e($data['excluded_scope'] !== '' ? $data['excluded_scope'] : 'Aucune exclusion déclarée par l’émetteur.')).'</p>';
+		$html .= '<p class="lmdb-flowing-text"><b>Périmètre couvert :</b><br>'.nl2br($e($data['covered_scope'])).'</p>';
+		$html .= '<p class="lmdb-flowing-text"><b>Fonctionnalités non couvertes :</b><br>'.nl2br($e($data['excluded_scope'] !== '' ? $data['excluded_scope'] : 'Aucune exclusion déclarée par l’émetteur.')).'</p>';
 		$html .= '<p>Fait à '.$e($data['city']).', le '.$date($data['date_attestation']).'.</p><p>Signature du représentant légal de l’émetteur :</p>';
 		if (!$this->writeBlocks($pdf, $html, $object, $french, $footer)) { return 0; }
 		if ($pdf->GetY() + 30 > 297 - $footer) { $this->_pagefoot($pdf, $object, $french, 1); $pdf->AddPage(); $pdf->SetY($this->_pagehead($pdf,$object,$french,false)); }
@@ -140,10 +140,11 @@ class pdf_loifinance extends CommonDocGenerator
 			$measure->SetFont(pdf_getPDFFont($french), '', 10);
 			$height = pdfGetHeightForHtmlContent($measure, $block) + 3;
 			$clientsignature = strpos($block, 'Signature du représentant légal de l’entreprise utilisatrice') !== false;
+			$flowing = strpos($block, 'class="lmdb-flowing-text"') !== false;
 			if ($clientsignature) { $height = max($height, 35); }
 			if (strpos($block, 'Signature du représentant légal de l’émetteur') !== false) { $height = max($height, 40); }
 			$nextstart = $this->marge_haute + 30;
-			if ($height <= $this->page_hauteur - $footer - $nextstart) {
+			if ($height <= $this->page_hauteur - $footer - $nextstart && (!$flowing || $pdf->GetY() + $height <= $this->page_hauteur - $footer)) {
 				if ($pdf->GetY() + $height + ($heading ? 12 : 0) > $this->page_hauteur - $footer) {
 					$this->_pagefoot($pdf, $object, $french, 1); $pdf->AddPage();
 					$pdf->SetY($this->_pagehead($pdf, $object, $french, false));
@@ -156,8 +157,19 @@ class pdf_loifinance extends CommonDocGenerator
 					continue;
 				}
 			}
-			// Exceptional long catalogue paragraphs remain plain text, wrapped by
-			// TCPDF rather than a second HTML renderer or a reduced font size.
+			// Flow catalogue text into the space left on this page, even when the
+			// whole paragraph would fit on the next. Keep its label with body lines.
+			$label = array();
+			if ($flowing && preg_match('~^<p class="lmdb-flowing-text"><b>(.*?)</b><br\s*/?>~us', $block, $label)) {
+				if ($pdf->GetY() + 18 > $this->page_hauteur - $footer) {
+					$this->_pagefoot($pdf, $object, $french, 1); $pdf->AddPage();
+					$pdf->SetY($this->_pagehead($pdf, $object, $french, false));
+				}
+				$pdf->writeHTMLCell(180, 0, 15, $pdf->GetY(), $french->convToOutputCharset('<b>'.$label[1].'</b>'), 0, 1, false, true, 'L');
+				$pdf->SetFont(pdf_getPDFFont($french), '', 10);
+				$block = '<p>'.substr($block, strlen($label[0]));
+			}
+			// TCPDF measures and wraps each plain-text fragment at normal font size.
 			$remaining = trim(dol_html_entity_decode(dol_string_nohtmltag(preg_replace('~<br\s*/?>~i', "\n", $block)), ENT_QUOTES | ENT_HTML5, 'UTF-8', 1));
 			while ($remaining !== '') {
 				$available = $this->page_hauteur - $footer - $pdf->GetY() - 3;

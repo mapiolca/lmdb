@@ -328,6 +328,12 @@ if (in_array('--pdf',$argv,true)) {
 	$image=imagecreatetruecolor(200,80); imagefill($image,0,0,imagecolorallocate($image,255,255,255));
 	imagestring($image,5,10,30,'SPECIMEN',imagecolorallocate($image,0,0,120)); imagepng($image,$dir.'/private/signature.png');
 	$object->snapshot_data=json_encode(array('schema'=>'1','legal_model'=>'BOI-LETTRE-000242-20260325','issuer_name'=>'Société de test Émetteur','issuer_address'=>'10 rue du Test','issuer_zip'=>'75001','issuer_town'=>'Paris','issuer_id'=>'SIREN fictif','signer'=>'Signataire fictif','signer_role'=>'Représentant légal','city'=>'Paris','client_name'=>'Client fictif ÀÉÈÇ','client_address'=>'20 rue du Test','client_zip'=>'69001','client_town'=>'Lyon','client_id'=>'SIREN fictif','version'=>'24.0.2','date_release'=>(string)strtotime('2026-09-01'),'covered_scope'=>'Fonctions de caisse et enregistrement des encaissements couverts par les journaux inaltérables.','excluded_scope'=>'Modules tiers non audités.','signature_file'=>'private/signature.png','date_attestation'=>(string)strtotime('2026-10-24'),'date_acquisition'=>'','date_start'=>'','client_representative'=>'','license_number'=>''),JSON_UNESCAPED_UNICODE);
+	if (in_array('--scope-pagebreak',$argv,true)) {
+		$pagebreak=json_decode($object->snapshot_data,true);
+		$pagebreak['covered_scope']='DÉBUT PÉRIMÈTRE DE RECETTE. '.str_repeat('Texte long avec accents : inaltérabilité, sécurisation, conservation et archivage. ',40).' FIN PÉRIMÈTRE DE RECETTE.';
+		$pagebreak['excluded_scope']="Exclusion avec retour\nDEUXIÈME LIGNE EXCLUE.";
+		$object->snapshot_data=json_encode($pagebreak,JSON_UNESCAPED_UNICODE);
+	}
 	if (in_array('--stress',$argv,true)) {
 		$stress=json_decode($object->snapshot_data,true);
 		$stress['covered_scope']=str_repeat('Périmètre détaillé avec accents : inaltérabilité, sécurisation, conservation et archivage. ',150);
