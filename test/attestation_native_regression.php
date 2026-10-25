@@ -168,6 +168,14 @@ $db->query("UPDATE fixture_lmdb_attestation_version SET covered_scope='".$db->es
 checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,4)>0 && $db->fetch_object($db->query('SELECT covered_scope FROM fixture_lmdb_attestation_version WHERE entity=4 LIMIT 1'))->covered_scope===$originalcovered,'Exact unused inactive defaults with escaped line breaks are repaired');
 $langs->tab_translate['LmdbAttestationDefaultCoveredScope']=$originalcovered;
 $langs->tab_translate['LmdbAttestationDefaultExcludedScope']=$originalexcluded;
+require_once $core.'/core/class/html.form.class.php';
+$form=new Form($db); $catalogueversion=new LmdbAttestationVersion($db);
+$catalogueversion->version='23.0'; $catalogueversion->covered_scope="Première ligne\nDeuxième <script>ligne</script>";
+$catalogueversion->excluded_scope="Exclusion\nSuite";
+$_SERVER['PHP_SELF']='/custom/lmdb/admin/attestation.php';
+ob_start(); require dirname(__DIR__).'/lib/lmdb_attestation_version_form.php'; $cataloguehtml=ob_get_clean();
+$cataloguedom=new DOMDocument(); @$cataloguedom->loadHTML('<?xml encoding="UTF-8">'.$cataloguehtml);
+checkAttestation($cataloguedom->getElementById('covered_scope')->textContent===$catalogueversion->covered_scope && $cataloguedom->getElementsByTagName('script')->length===0,'Rendered catalogue textarea preserves actual line breaks and escapes markup');
 $db->query("DELETE FROM fixture_lmdb_attestation_version WHERE version IN ('23.0','24.0')");
 
 // Only thirdparty hydration is simulated here; object/rights/entity fetching is native.

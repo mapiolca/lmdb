@@ -18,7 +18,7 @@ foreach ($catalogueversion->fields as $key => $field) {
 	if (!$field['visible'] || $key === 'active') { continue; }
 	print '<tr><td class="titlefield'.(!empty($field['notnull']) ? ' fieldrequired' : '').'"><label for="'.$key.'">'.$langs->trans($field['label']).'</label></td><td>';
 	if ($key === 'date_release') { print $form->selectDate($catalogueversion->date_release ?: '', 'date_release', 0, 0, 1, '', 1, 0); }
-	elseif ($field['type'] === 'text') { print '<textarea class="flat centpercent" id="'.$key.'" name="'.$key.'" rows="3">'.dol_escape_htmltag($catalogueversion->{$key}).'</textarea>'; }
+	elseif ($field['type'] === 'text') { print '<textarea class="flat centpercent" id="'.$key.'" name="'.$key.'" rows="3">'.dol_escape_htmltag($catalogueversion->{$key}, 0, 1).'</textarea>'; }
 	else { print $catalogueversion->showInputField($field, $key, $catalogueversion->{$key}); }
 	if ($catalogueversion->getFieldError($key)) { print '<span class="error">'.dol_escape_htmltag($catalogueversion->getFieldError($key)).'</span>'; }
 	print '</td></tr>';
