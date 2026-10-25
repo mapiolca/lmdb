@@ -128,11 +128,37 @@ checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,1)>0 && LmdbA
 $seedrows=$db->query("SELECT * FROM fixture_lmdb_attestation_version WHERE entity=1 AND version IN ('23.0','24.0')");
 checkAttestation($db->num_rows($seedrows)===2,'Published 23.0 and 24.0 families are seeded once');
 $seed=$db->fetch_object($seedrows); $seedversion=new LmdbAttestationVersion($db); $seedversion->id=(int)$seed->rowid;
-checkAttestation((int)$seed->active===0 && $seedversion->setActive($user,1)<0,'Incomplete seeded scope cannot be activated');
+checkAttestation((int)$seed->active===0 && strpos($seed->covered_scope,'TakePOS')!==false && strpos($seed->excluded_scope,'NF525/LNE')!==false && strpos($seed->covered_scope,"\n")!==false,'Seeded reference scopes and exclusions are translated, multiline and inactive');
+$db->query("UPDATE fixture_lmdb_attestation_version SET covered_scope='' WHERE rowid=".(int)$seed->rowid);
+checkAttestation($seedversion->setActive($user,1)<0,'Incomplete scope still cannot be activated');
+$db->query("UPDATE fixture_lmdb_attestation_version SET covered_scope='".$db->escape($seed->covered_scope)."' WHERE rowid=".(int)$seed->rowid);
+$otherseed=$db->fetch_object($db->query("SELECT rowid FROM fixture_lmdb_attestation_version WHERE entity=1 AND version='24.0'"));
+$db->query("UPDATE fixture_lmdb_attestation_version SET covered_scope='',excluded_scope='' WHERE rowid=".(int)$otherseed->rowid);
+checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,1)>0 && $db->fetch_object($db->query("SELECT covered_scope FROM fixture_lmdb_attestation_version WHERE rowid=".(int)$otherseed->rowid))->covered_scope===$seed->covered_scope,'Inactive unused empty preview seed receives the reference scope');
+$db->query("UPDATE fixture_lmdb_attestation_version SET covered_scope='',excluded_scope='Issuer exclusion' WHERE rowid=".(int)$otherseed->rowid);
+LmdbAttestationInstaller::initializeCatalogue($db,1);
+checkAttestation($db->fetch_object($db->query("SELECT covered_scope FROM fixture_lmdb_attestation_version WHERE rowid=".(int)$otherseed->rowid))->covered_scope==='','An existing exclusion prevents overwriting the catalogue entry');
+$db->query("UPDATE fixture_lmdb_attestation_version SET excluded_scope='' WHERE rowid=".(int)$otherseed->rowid);
+$db->query('UPDATE fixture_lmdb_attestation SET fk_version='.(int)$otherseed->rowid.' WHERE rowid=1');
+LmdbAttestationInstaller::initializeCatalogue($db,1);
+checkAttestation($db->fetch_object($db->query("SELECT covered_scope FROM fixture_lmdb_attestation_version WHERE rowid=".(int)$otherseed->rowid))->covered_scope==='','An attestation reference prevents backfilling its catalogue scope');
+$db->query('UPDATE fixture_lmdb_attestation SET fk_version=1 WHERE rowid=1');
+LmdbAttestationInstaller::initializeCatalogue($db,1);
 $db->query("UPDATE fixture_lmdb_attestation_version SET covered_scope='Custom scope',active=1 WHERE entity=1 AND version='23.0'");
 checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,1)>0 && $db->fetch_object($db->query("SELECT covered_scope,active FROM fixture_lmdb_attestation_version WHERE entity=1 AND version='23.0'"))->covered_scope==='Custom scope','Seed preserves an existing issuer scope and activation');
 checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,2)>0 && $db->num_rows($db->query("SELECT rowid FROM fixture_lmdb_attestation_version WHERE entity=2"))===2,'Catalogue seed belongs to each owner entity');
 checkAttestation($db->num_rows($db->query("SELECT rowid FROM fixture_lmdb_attestation_version WHERE version LIKE '25%'"))===0,'Alpha does not seed a final 25.0 version');
+$frlangs=$langs; $langs=new Translate('',$conf); $langs->setDefaultLang('en_US');
+checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,3)>0 && strpos($db->fetch_object($db->query("SELECT covered_scope FROM fixture_lmdb_attestation_version WHERE entity=3 LIMIT 1"))->covered_scope,'Native Dolibarr functions')===0,'English installation receives a translated reference scope');
+$langs=$frlangs;
+$db->query("UPDATE fixture_lmdb_attestation_version SET covered_scope='',excluded_scope='',active=1 WHERE entity=2 AND version='24.0'");
+LmdbAttestationInstaller::initializeCatalogue($db,2);
+checkAttestation($db->fetch_object($db->query("SELECT covered_scope FROM fixture_lmdb_attestation_version WHERE entity=2 AND version='24.0'"))->covered_scope==='','Active entries are not backfilled automatically');
+$db->failSql='SET covered_scope';
+checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,4)<0 && $db->num_rows($db->query('SELECT rowid FROM fixture_lmdb_attestation_version WHERE entity=4'))===0,'Backfill failure rolls back newly inserted catalogue entries');
+$db->failSql=''; $db->failCommit=true;
+checkAttestation(LmdbAttestationInstaller::initializeCatalogue($db,4)<0 && $db->num_rows($db->query('SELECT rowid FROM fixture_lmdb_attestation_version WHERE entity=4'))===0,'Commit failure does not leave a partially seeded catalogue');
+$db->failCommit=false;
 $db->query("DELETE FROM fixture_lmdb_attestation_version WHERE version IN ('23.0','24.0')");
 
 // Only thirdparty hydration is simulated here; object/rights/entity fetching is native.

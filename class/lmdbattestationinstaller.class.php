@@ -57,7 +57,7 @@ class LmdbAttestationInstaller
 		$sharing = array_replace_recursive(ActionsLmdb::getMulticompanySharingDefinition(), $sharing);
 		return dolibarr_set_const($db,'MULTICOMPANY_EXTERNAL_MODULES_SHARING',json_encode($sharing),'chaine',0,'',(int)$entity) > 0 ? 1 : -1;
 	}
-	/** Seed published release families only; the issuer must define the legal scope.
+	/** Seed a reference functional scope, kept inactive until issuer assessment.
 	 * Release dates: https://wiki.dolibarr.org/index.php/Releases (read 2026-10-24).
 	 * No 25.0 seed: the alpha does not establish the final release or attested scope.
 	 * @param DoliDB $db Database
@@ -66,11 +66,20 @@ class LmdbAttestationInstaller
 	 */
 	public static function initializeCatalogue($db, $entity)
 	{
-		if ((int)$entity <= 0 || !$db->begin()) { return -1; }
+		global $langs;
+		$langs->load('lmdb@lmdb');
+		$covered = $langs->transnoentitiesnoconv('LmdbAttestationDefaultCoveredScope');
+		$excluded = $langs->transnoentitiesnoconv('LmdbAttestationDefaultExcludedScope');
+		if ((int)$entity <= 0 || $covered === 'LmdbAttestationDefaultCoveredScope' || $excluded === 'LmdbAttestationDefaultExcludedScope' || !$db->begin()) { return -1; }
 		foreach (array('23.0'=>'2026-02-28', '24.0'=>'2026-08-20') as $version=>$date) {
-			$sql = "INSERT INTO ".MAIN_DB_PREFIX."lmdb_attestation_version (entity,version,date_release,covered_scope,excluded_scope,active) SELECT ".(int)$entity.",'".$version."','".$date."','','',0 WHERE NOT EXISTS (SELECT rowid FROM ".MAIN_DB_PREFIX."lmdb_attestation_version WHERE entity=".(int)$entity." AND version='".$version."')";
+			$sql = "INSERT INTO ".MAIN_DB_PREFIX."lmdb_attestation_version (entity,version,date_release,covered_scope,excluded_scope,active) SELECT ".(int)$entity.",'".$version."','".$date."','".$db->escape($covered)."','".$db->escape($excluded)."',0 WHERE NOT EXISTS (SELECT rowid FROM ".MAIN_DB_PREFIX."lmdb_attestation_version WHERE entity=".(int)$entity." AND version='".$version."')";
 			if (!$db->query($sql)) { $db->rollback(); return -1; }
 		}
+		// Backfill only untouched, inactive and unused preview seeds. Never rewrite
+		// a customized entry or a scope already referenced by an attestation.
+		$table = MAIN_DB_PREFIX.'lmdb_attestation_version';
+		$sql = "UPDATE ".$table." SET covered_scope='".$db->escape($covered)."',excluded_scope='".$db->escape($excluded)."' WHERE entity=".(int)$entity." AND version IN ('23.0','24.0') AND active=0 AND COALESCE(covered_scope,'')='' AND COALESCE(excluded_scope,'')='' AND NOT EXISTS (SELECT a.rowid FROM ".MAIN_DB_PREFIX."lmdb_attestation a WHERE a.fk_version=".$table.".rowid)";
+		if (!$db->query($sql)) { $db->rollback(); return -1; }
 		if (!$db->commit()) { $db->rollback(); return -1; }
 		return 1;
 	}

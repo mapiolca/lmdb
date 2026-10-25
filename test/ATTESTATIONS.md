@@ -163,3 +163,9 @@ SHA confirmé dans cPanel ControlGit puis comportement modifié confirmé dans l
 - Le blocage global des emails a été remis à son état initial désactivé après les essais. Aucun courriel envoyé. Les réglages Agenda sont restés désactivés ; aucun événement automatique de recette supplémentaire attendu dans ce complément. LMDB reste activé.
 
 Vérifications finales locales sur `dd2efcf` : **78 contrôles par exécution normale et stress**, PHPStan **niveau 5 / cible PHP 8.0 sans erreur**, syntaxe des **42 PHP**. Régression factures FR/EN réussie. Aucune exécution GitHub Actions trouvée pour ce SHA ; les résultats locaux ne sont pas présentés comme une CI.
+
+## Complément du 25 octobre 2026 — périmètres 23.0 et 24.0
+
+À la demande de l’utilisateur, les deux familles reçoivent désormais un périmètre fonctionnel de référence et des exclusions. [Sources figées, texte et limites](ATTESTATION_SCOPES.md). Ce complément remplace le préremplissage vide décrit dans la recette du 24 octobre, sans modifier les instantanés ni les textes personnalisés. Aucune activation automatique et aucune entrée 25.0.
+
+Validation locale avant publication : **83 contrôles**, sources natives Dolibarr 24.0.1 `029a92fb538e90db684dec8b6ba80ee5a6638efd`, PHP 8.5.7, adaptateur SQL SQLite simulé. Français/anglais, retours à la ligne, initialisation répétée, rattrapage d’entrée vide inutilisée, conservation des entrées personnalisées/actives/utilisées et isolement par entité vérifiés ; échecs d’écriture et de commit simulés avec rollback. PHPStan 2.3.1 niveau 5 / cible PHP 8.0 sans erreur ; lint des deux PHP modifiés et `git diff --check` réussis. Le modèle PDF n’est pas modifié dans ce complément ; les recettes PDF précédentes restent rattachées à leur SHA.
