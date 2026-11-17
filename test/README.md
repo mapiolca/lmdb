@@ -109,3 +109,36 @@ Le test SQL isolé, la non-régression des traductions FR/EN et PHPStan niveau 5
 - preuve locale ignorée : `test/.runtime/mailing-deployment-blocked.jpg`.
 
 À reprendre après rétablissement de l’accès Git du serveur : déployer la branche, confirmer son SHA et la présence du script servi, recharger LMDB dans chaque entité, puis exécuter la recette navigateur listée plus haut. Ne pas assimiler l’absence de colonne sur l’ancien code à un échec du patch. Aucun contrôle CI n’était affiché sur la PR #9 lors de cette vérification.
+
+## Recette finale sur develop — PR #9, 2026-11-17
+
+Cette entrée complète et corrige le diagnostic de blocage ci-dessus, sans en effacer la trace. L’ancienne branche distante `feat/attestations-conformite-loi-finance` n’existe plus dans `git ls-remote`. Le message générique cPanel ne prouvait pas une panne réseau. La sélection effective de l’option `feat/mailing-scheduled-date-column` dans le composant Chosen, suivie de **Mettre à jour**, a basculé le dépôt servi ; **Update from Remote** fonctionne ensuite et confirme le dépôt à jour. Aucune URL distante, clé, protection TLS/SSH ou identité Git n’a été modifiée. La tentative SSH locale est restée refusée par la vérification de clé d’hôte, sans contournement.
+
+Code fonctionnel utilisé pour les essais ci-dessous et confirmé dans cPanel : `c49051f6c86acbb0301bc2c0f7e93297aa816c6a`. Le complément final impose également POST pour la persistance de la préférence vide, dans le formulaire natif protégé par le CSRF de `main.inc.php` ; un GET n’effectue aucune écriture additionnelle LMDB, comme vérifié par le test. Instance réellement observée : **Dolibarr 25.0.0-alpha, PHP 8.3.36, pilote mysqli, Multicompany actif**, compte Codex. Révision du core, version du serveur MySQL/MariaDB et version Multicompany non relevées. Ces résultats ne valident pas une future v25 finale.
+
+Les essais réels ont conduit aux corrections suivantes, publiées sur la même branche : traduction sans entités HTML pour le texte injecté ; en-tête natif `th` ; URL de script versionnée par sa date de modification pour invalider le cache ; conservation du choix de masquage même lorsque cette colonne est la seule option. L’API native de préférences supprime une valeur vide : une sélection CSV non vide ne contenant aucun champ (`,`) permet au sélecteur natif de conserver l’état sans champ affiché. Le correctif intermédiaire `240c552` ne suffisait pas ; il est remplacé par le traitement après sauvegarde native dans `printFieldListWhere`.
+
+À la demande complémentaire de l’utilisateur, la colonne propose désormais le titre triable natif et une période inclusive avec deux datepickers Dolibarr. Le hook SQL enrichit simultanément le SELECT et son préfixe natif de comptage, puis applique les bornes avant comptage, tri et pagination. Les liens de tri et de pagination conservent les composantes de date. Aucun endpoint, table, mécanisme de droits ni traitement d’envoi supplémentaire.
+
+Scénarios effectivement vérifiés dans le navigateur sur TEST 1 :
+
+- rechargement natif de LMDB, initialement actif, pour actualiser les contextes ; module actif à la fin ; aucune programmation modifiée ;
+- emailing 1 : liste et fiche concordent sur `05/08/2026 21:20` ; emailing 2 sans programmation : cellule vide ;
+- titre lisible avec accents, en-tête `th scope=col`, script avec paramètre de version servi et colonne avant le statut ;
+- clic sur le titre : ordre décroissant `1, 2`, puis croissant `2, 1` (valeur nulle d’abord en ordre croissant) ;
+- bornes sélectionnées avec les **calendriers natifs**, du 05/08/2026 au 05/08/2026 : un seul résultat (emailing 1) ; campagne sans date exclue ;
+- passage à 50 avec filtre actif : bornes conservées dans les liens ; du 06/08/2026 au 06/08/2026 : état vide natif ;
+- ligne vide : `colspan=10`, identique au nombre d’en-têtes ; réinitialisation native : retour des deux campagnes ;
+- limites 20, 50, 100, puis 20 : sélection native fonctionnelle, dates et alignement conservés ; le select `#limit` possède un formulaire parent ; seulement deux campagnes disponibles, donc pas de changement de page multi-page exécuté ;
+- désélection dans le sélecteur natif puis soumission : colonne masquée ; actualisation : masquage conservé ; resélection : colonne réaffichée ;
+- largeur mobile initiale (539 px) avec défilement horizontal natif, puis contrôle bureau 1440 px pour accéder au menu d’entité ; override de largeur restauré à la fin.
+
+Multicompany : bascule effectuée avec le bouton natif **Changer d’entité**, après sélection de TEST 2. La page est refusée au compte Codex dans TEST 2, sans restitution des campagnes. Aucun droit ni module activé pour contourner ce refus. Retour effectif à TEST 1 confirmé. Cela valide le refus du parcours dans TEST 2, pas un affichage positif de la colonne dans deux entités autorisées ; le filtrage SQL positif sur deux entités reste couvert par le test isolé.
+
+Limite native distincte reproduite : `mailing/list.php?filteremail=lmdb-recette%40example.invalid` échoue avec `Unknown column 'm.fk_project' in 'ON'`. La même erreur, dans les requêtes de comptage et de liste dépourvues du SELECT LMDB, est observée avec le contexte natif alternatif `contextpage=mailingrecipebaseline` (hooks de colonne inactifs). Le core combine `mailing m, mailing_cibles mc LEFT JOIN projet pr ON ... m.fk_project`. Ce parcours natif par destinataire reste bloqué sur cette instance ; aucun fichier core modifié. L’onglet projet sans campagne liée, les cases de masse à droite et un compte de lecture seul n’ont pas fait l’objet d’un essai positif distant.
+
+Vérifications locales finales sur le code `c49051f` : test étendu réussi avec les vrais HookManager v20–v24 et le checkout local ; SQL SQLite en mémoire pour bornes, date invalide, reset, tri ASC/DESC avant LIMIT, cohérence du préfixe de comptage et conservation des paramètres ; syntaxe PHP, non-régression FR/EN et PHPStan niveau 5 (cible PHP 8.0) réussis. L’ancien code `b91158f` échoue sur le nouveau scénario des entités HTML ; le correctif réussit. La découverte des hooks, la session et le SQL des tests locaux restent simulés ; aucune instance complète v20–v24 ni PHP 8.0 réel exécutée.
+
+État final demandé : branche de recette conservée sur develop ; TEST 1, liste sans filtre, tri de création décroissant, limite 20, colonne visible. Les préférences ont été exercées via l’interface native puis remises dans leur état visible initial. Aucun emailing créé, modifié, validé, envoyé ou supprimé ; aucun cron exécuté, aucune configuration SMTP ou notification modifiée. Le rechargement natif du module est le seul changement de configuration de module effectué.
+
+Preuves locales ignorées : `test/.runtime/mailing-git-repaired.jpg`, `mailing-label-before.jpg`, `mailing-list-final-test1.jpg`, `mailing-test2-denied.jpg`. Le SHA du dernier commit documentaire servi peut être plus récent que `c49051f`, sans changement du code fonctionnel. La PR décrit les résultats rattachés à ce code et distingue les contrôles CI absents des tests locaux.

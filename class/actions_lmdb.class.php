@@ -171,7 +171,8 @@ class ActionsLmdb
 				$sqlfields = 'SELECT '.$select.substr($sqlfields, 7);
 			}
 		}
-		if (GETPOST('formfilteraction', 'alphanohtml') === 'listafterchangingselectedfields'
+		if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST'
+			&& GETPOST('formfilteraction', 'alphanohtml') === 'listafterchangingselectedfields'
 			&& GETPOST('selectedfields', 'alphanohtml') === '') {
 			// This hook runs after native saving, which removes empty values.
 			// A nonempty CSV containing no field keeps the native selector empty.

@@ -138,6 +138,10 @@ try {
 	}
 	$posted = array('formfilteraction' => 'listafterchangingselectedfields', 'selectedfields' => '');
 	$hooks->doActions($params, $object, $action, $manager);
+	$_SERVER['REQUEST_METHOD'] = 'GET';
+	$hooks->printFieldListWhere($params, $object, $action, $manager);
+	check(!isset($user->conf->MAIN_SELECTEDFIELDS_mailinglist), 'GET cannot persist an empty column preference');
+	$_SERVER['REQUEST_METHOD'] = 'POST';
 	$hooks->printFieldListWhere($params, $object, $action, $manager);
 	check(isset($user->conf->MAIN_SELECTEDFIELDS_mailinglist) && $user->conf->MAIN_SELECTEDFIELDS_mailinglist === ',', 'Explicit empty survives native parameter persistence');
 	unset($user->conf->MAIN_SELECTEDFIELDS_mailinglist); $posted = array();
