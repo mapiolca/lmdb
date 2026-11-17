@@ -29,6 +29,12 @@ class ActionsLmdb
 	/** @var int|null Insertion position before the native status column. */
 	private $mailingListColumnIndex;
 
+	/** @var array{start:int,end:int} Inclusive user-local date bounds. */
+	private $mailingListDateRange = array('start' => 0, 'end' => 0);
+
+	/** @var bool Reject malformed date ranges instead of silently removing the filter. */
+	private $mailingListInvalidRange = false;
+
 	/** @var DoliDB */
 	public $db;
 
@@ -139,6 +145,110 @@ class ActionsLmdb
 	}
 
 	/**
+	 * Add the schedule scalar to the native SELECT before count/sort/pagination.
+	 * @param array<string,mixed> $parameters Hook parameters
+	 * @param CommonObject|null $object Native list object
+	 * @param string $action Current action
+	 * @param HookManager $hookmanager Native manager
+	 * @return int
+	 */
+	public function printFieldListWhere($parameters, &$object, &$action, $hookmanager)
+	{
+		global $user, $conf, $langs, $contextpage, $sql, $sqlfields;
+		$this->resprints = '';
+		if (!$this->isMailingListContext($parameters, $object) || !$user->hasRight('mailing', 'lire')) {
+			return 0;
+		}
+		// The unique (entity, fk_mailing) index guarantees a scalar, without
+		// multiplying campaigns or losing unscheduled campaigns in a join.
+		$expression = "(SELECT lmdb_ms.scheduled_send_at FROM ".MAIN_DB_PREFIX."lmdb_mailing_schedule AS lmdb_ms";
+		$expression .= " WHERE lmdb_ms.fk_mailing = m.rowid AND lmdb_ms.entity = m.entity AND m.messtype = 'email')";
+		$select = $expression.' AS '.self::SCHEDULED_SEND_FIELD.', ';
+		if (is_string($sql) && strpos($sql, 'SELECT ') === 0) {
+			$sql = 'SELECT '.$select.substr($sql, 7);
+			// Keep the exact native count-query prefix in sync with the SELECT.
+			if (is_string($sqlfields) && strpos($sqlfields, 'SELECT ') === 0) {
+				$sqlfields = 'SELECT '.$select.substr($sqlfields, 7);
+			}
+		}
+		if (GETPOST('formfilteraction', 'alphanohtml') === 'listafterchangingselectedfields'
+			&& GETPOST('selectedfields', 'alphanohtml') === '') {
+			// This hook runs after native saving, which removes empty values.
+			// A nonempty CSV containing no field keeps the native selector empty.
+			require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
+			$key = 'MAIN_SELECTEDFIELDS_'.(string) $contextpage;
+			if (dol_set_user_param($this->db, $conf, $user, array($key => ',')) <= 0) {
+				$this->error = $langs->trans('Error');
+				$this->resprints = ' AND 1=0';
+				return -1;
+			}
+		}
+		if ($this->mailingListInvalidRange) {
+			$this->resprints = ' AND 1=0';
+			return 0;
+		}
+		foreach (array('start' => '>=', 'end' => '<=') as $bound => $operator) {
+			if ($this->mailingListDateRange[$bound] > 0) {
+				$this->resprints .= ' AND '.$expression.' '.$operator." '".$this->db->idate($this->mailingListDateRange[$bound])."'";
+			}
+		}
+		return 0;
+	}
+
+	/**
+	 * Preserve each native date component in sorting and pagination URLs.
+	 * @param array<string,mixed> $parameters Hook parameters
+	 * @param CommonObject|null $object Native list object
+	 * @param string $action Current action
+	 * @param HookManager $hookmanager Native manager
+	 * @return int
+	 */
+	public function printFieldListSearchParam($parameters, &$object, &$action = '', $hookmanager = null)
+	{
+		global $user;
+		$this->resprints = '';
+		if (!$this->isMailingListContext($parameters, $object) || !$user->hasRight('mailing', 'lire')) {
+			return 0;
+		}
+		foreach ($this->mailingListDateRange as $bound => $timestamp) {
+			if ($timestamp <= 0) {
+				continue;
+			}
+			foreach (array('day' => '%d', 'month' => '%m', 'year' => '%Y') as $part => $format) {
+				$this->resprints .= '&search_lmdbscheduled_'.$bound.$part.'='.(int) dol_print_date($timestamp, $format, 'tzuserrel');
+			}
+		}
+		return 0;
+	}
+
+	/**
+	 * Render native datepickers inside the list form. The display script moves
+	 * this block into the column filter cell, preserving its native handlers.
+	 * @param array<string,mixed> $parameters Hook parameters
+	 * @param CommonObject|null $object Native list object
+	 * @param string $action Current action
+	 * @param HookManager $hookmanager Native manager
+	 * @return int
+	 */
+	public function printFieldPreListTitle($parameters, &$object, &$action, $hookmanager)
+	{
+		global $user, $langs;
+		$this->resprints = '';
+		if (!$this->isMailingListContext($parameters, $object) || !$user->hasRight('mailing', 'lire') || isset($parameters['type'])) {
+			return 0;
+		}
+		$form = new Form($this->db);
+		$this->resprints = '<div id="lmdb-mailing-date-filter"><span class="opacitymedium">'.$langs->trans('LmdbScheduledMailingSendAt').'</span><br>';
+		foreach (array('start' => 'from', 'end' => 'to') as $bound => $label) {
+			$this->resprints .= '<span class="nowrap">'.$langs->trans($label).' ';
+			$this->resprints .= $form->selectDate($this->mailingListDateRange[$bound] ?: -1, 'search_lmdbscheduled_'.$bound, 0, 0, 1, '', 1, 0, 0, '', '', '', '', 1, '', '', 'tzuserrel');
+			$this->resprints .= '</span>'.($bound === 'start' ? '<br>' : '');
+		}
+		$this->resprints .= '</div>';
+		return 0;
+	}
+
+	/**
 	 * Read dates in one query joined to the native filtered and paginated query.
 	 * Native mailing lists v20-v24 expose no per-row rendering hook.
 	 * @param array<string,mixed> $parameters Hook parameters
@@ -195,7 +305,7 @@ class ActionsLmdb
 	 */
 	public function printFieldListFooter($parameters, &$object, &$action, $hookmanager)
 	{
-		global $user, $langs;
+		global $user, $langs, $param, $sortfield, $sortorder;
 		$this->resprints = '';
 		if (!$this->isMailingListContext($parameters, $object) || !$user->hasRight('mailing', 'lire')
 			|| $this->mailingListColumnIndex === null) {
@@ -205,6 +315,7 @@ class ActionsLmdb
 		$data = json_encode(array(
 			'index' => $this->mailingListColumnIndex,
 			'label' => $langs->transnoentities('LmdbScheduledMailingSendAt'),
+			'header' => getTitleFieldOfList('LmdbScheduledMailingSendAt', 0, $_SERVER['PHP_SELF'], self::SCHEDULED_SEND_FIELD, '', (string) $param, '', (string) $sortfield, (string) $sortorder, 'center '),
 			'dates' => (object) $this->mailingListDates,
 		), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 		$this->resprints = '<script type="application/json" id="lmdb-mailing-list-dates">'.$data.'</script>';
@@ -236,14 +347,39 @@ class ActionsLmdb
 			}
 			global $contextpage;
 			$preferenceKey = 'MAIN_SELECTEDFIELDS_'.(string) $contextpage;
-			// The native selector treats an empty saved list as default selection.
-			// Here this is the only optional column: an explicit empty value hides it.
 			$checked = 1;
-			if ((isset($user->conf) && is_object($user->conf)
-				&& isset($user->conf->{$preferenceKey}) && $user->conf->{$preferenceKey} === '')
-				|| (GETPOST('formfilteraction', 'alphanohtml') === 'listafterchangingselectedfields'
-					&& GETPOST('selectedfields', 'alphanohtml') === '')) {
+			if (isset($user->conf) && is_object($user->conf) && isset($user->conf->{$preferenceKey}) && $user->conf->{$preferenceKey} === '') {
 				$checked = 0;
+			}
+			if (GETPOST('formfilteraction', 'alphanohtml') === 'listafterchangingselectedfields'
+				&& GETPOST('selectedfields', 'alphanohtml') === '') {
+				$checked = 0;
+			}
+			$this->mailingListDateRange = array('start' => 0, 'end' => 0);
+			$this->mailingListInvalidRange = false;
+			$clear = false;
+			foreach (array('button_removefilter', 'button_removefilter_x', 'button_removefilter.x') as $name) {
+				$clear = $clear || GETPOSTISSET($name);
+			}
+			if (!$clear) {
+				foreach (array('start' => 0, 'end' => 23) as $bound => $hour) {
+					$prefix = 'search_lmdbscheduled_'.$bound;
+					$day = GETPOSTINT($prefix.'day');
+					$month = GETPOSTINT($prefix.'month');
+					$year = GETPOSTINT($prefix.'year');
+					if ($day === 0 && $month === 0 && $year === 0) { continue; }
+					if (!checkdate($month, $day, $year)) {
+						$this->mailingListInvalidRange = true;
+						continue;
+					}
+					$this->mailingListDateRange[$bound] = dol_mktime($hour, $hour ? 59 : 0, $hour ? 59 : 0, $month, $day, $year, 'tzuserrel');
+				}
+				if ($this->mailingListDateRange['start'] && $this->mailingListDateRange['end'] && $this->mailingListDateRange['start'] > $this->mailingListDateRange['end']) {
+					$this->mailingListInvalidRange = true;
+				}
+				if ($this->mailingListInvalidRange) {
+					setEventMessages($langs->trans('LmdbScheduledMailingInvalidDate'), null, 'errors');
+				}
 			}
 			$arrayfields[self::SCHEDULED_SEND_FIELD] = array(
 				'label' => 'LmdbScheduledMailingSendAt', 'checked' => $checked,

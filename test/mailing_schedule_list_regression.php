@@ -6,7 +6,7 @@
 error_reporting(E_ALL);
 set_error_handler(function ($severity, $message, $file, $line) { throw new ErrorException($message, 0, $severity, $file, $line); });
 $temporary = sys_get_temp_dir().'/lmdb-mailing-list-'.bin2hex(random_bytes(6));
-foreach (array('comm/mailing/class/mailing.class.php', 'core/class/html.form.class.php') as $file) {
+foreach (array('comm/mailing/class/mailing.class.php', 'core/class/html.form.class.php', 'core/lib/functions2.lib.php') as $file) {
 	mkdir(dirname($temporary.'/'.$file), 0700, true);
 	file_put_contents($temporary.'/'.$file, '<?php');
 }
@@ -15,12 +15,19 @@ define('MAIN_DB_PREFIX', 'test_');
 function check($value, $message) { if (!$value) throw new RuntimeException($message); }
 $enabled = true;
 function isModEnabled($module) { global $enabled; return $enabled; }
-function dol_print_date($date, $format) { check($format === 'dayhour', 'Native date/time format'); return gmdate('Y-m-d H:i', $date); }
+function dol_print_date($date, $format, $tz = 'auto') { return $format === 'dayhour' ? gmdate('Y-m-d H:i', $date) : gmdate(str_replace(array('%d','%m','%Y'), array('d','m','Y'), $format), $date); }
 function dol_buildpath($path, $mode) { return $path; }
 function dol_syslog($message, $level) {}
 function getDolGlobalInt($key, $default = 0) { return $default; }
 $posted = array();
 function GETPOST($key, $filter) { global $posted; return $posted[$key] ?? ''; }
+function GETPOSTINT($key) { return (int) GETPOST($key, 'int'); }
+function GETPOSTISSET($key) { global $posted; return array_key_exists($key, $posted); }
+function dol_mktime($h, $i, $s, $m, $d, $y, $tz) { return gmmktime($h, $i, $s, $m, $d, $y); }
+function setEventMessages($message, $errors, $type) {}
+function dol_set_user_param($db, $conf, &$user, $params) { foreach ($params as $key => $value) { check($value === ',', 'Native empty CSV selection must be retained'); $user->conf->{$key} = $value; } return 1; }
+function getTitleFieldOfList($name, $thead, $file, $field, $begin, $params, $attrib, $sortfield, $sortorder, $prefix) { return '<th><a href="?sortfield='.$field.'&amp;sortorder=asc'.$params.'">Scheduled</a></th>'; }
+class Form { public function __construct($db) {} public function selectDate($time, $prefix, $h, $m, $empty) { return '<input name="'.$prefix.'">'; } }
 class Mailing {}
 class ListTestLanguages {
 	public function load($catalogue) {}
@@ -41,6 +48,7 @@ class ListTestDatabase {
 	public function query($sql) { $this->queries++; return $this->fail ? false : $this->connection->query($sql); }
 	public function fetch_object($result) { $row = $result->fetchArray(SQLITE3_ASSOC); return $row === false ? false : (object) $row; }
 	public function free($result) { $result->finalize(); }
+	public function idate($date) { return gmdate('Y-m-d H:i:s', $date); }
 	public function jdate($date) { return strtotime($date.' UTC'); }
 }
 require __DIR__.'/../class/actions_lmdb.class.php';
@@ -100,6 +108,42 @@ try {
 	check($hooks->printFieldListTitle($params, $object, $action, $manager) === -1, 'SQL failure reported');
 	$hooks->printFieldListFooter($params, $object, $action, $manager);
 	check($hooks->resprints === '', 'SQL failure never looks like absent scheduling');
+	$db->fail = false; $conf->entity = 1;
+	$posted = array('search_lmdbscheduled_startday' => 20, 'search_lmdbscheduled_startmonth' => 11, 'search_lmdbscheduled_startyear' => 2026,
+		'search_lmdbscheduled_endday' => 20, 'search_lmdbscheduled_endmonth' => 11, 'search_lmdbscheduled_endyear' => 2026);
+	$hooks->doActions($params, $object, $action, $manager);
+	$sqlfields = 'SELECT m.rowid';
+	$sql = $sqlfields.' FROM test_mailing AS m WHERE m.entity = 1';
+	$hooks->printFieldListWhere($params, $object, $action, $manager);
+	$filteredSql = $sql.$hooks->resprints;
+	$result = $db->query($filteredSql.' ORDER BY '.ActionsLmdb::SCHEDULED_SEND_FIELD.' ASC LIMIT 1');
+	check($db->fetch_object($result)->rowid === 1 && $db->fetch_object($result) === false, 'Date range applied before sorting and pagination');
+	$countSql = preg_replace('/^'.preg_quote($sqlfields, '/').'/', 'SELECT COUNT(*) AS total', $filteredSql);
+	check((int) $db->fetch_object($db->query($countSql))->total === 1, 'Native count prefix remains coherent');
+	$hooks->printFieldListSearchParam($params, $object, $action, $manager);
+	check(strpos($hooks->resprints, '&search_lmdbscheduled_startday=20') !== false && strpos($hooks->resprints, '&search_lmdbscheduled_endyear=2026') !== false, 'Dates preserved in native sorting and pagination URLs');
+	$posted['search_lmdbscheduled_startday'] = 31; $posted['search_lmdbscheduled_startmonth'] = 2;
+	$hooks->doActions($params, $object, $action, $manager);
+	$sqlfields = 'SELECT m.rowid'; $sql = $sqlfields.' FROM test_mailing AS m WHERE m.entity=1';
+	$hooks->printFieldListWhere($params, $object, $action, $manager);
+	check($hooks->resprints === ' AND 1=0', 'Invalid date refuses the query instead of exposing an unfiltered list');
+	$posted = array('button_removefilter' => '1');
+	$hooks->doActions($params, $object, $action, $manager);
+	$sqlfields = 'SELECT m.rowid'; $sql = $sqlfields.' FROM test_mailing AS m WHERE m.entity=1 AND m.rowid IN (1,2)';
+	$hooks->printFieldListWhere($params, $object, $action, $manager);
+	check($hooks->resprints === '', 'Reset removes date bounds');
+	foreach (array('ASC' => 2, 'DESC' => 1) as $order => $firstId) {
+		$result = $db->query($sql.' ORDER BY '.ActionsLmdb::SCHEDULED_SEND_FIELD.' '.$order.' LIMIT 1');
+		check((int) $db->fetch_object($result)->rowid === $firstId, 'Chronological '.$order.' ordering before LIMIT');
+	}
+	$posted = array('formfilteraction' => 'listafterchangingselectedfields', 'selectedfields' => '');
+	$hooks->doActions($params, $object, $action, $manager);
+	$hooks->printFieldListWhere($params, $object, $action, $manager);
+	check(isset($user->conf->MAIN_SELECTEDFIELDS_mailinglist) && $user->conf->MAIN_SELECTEDFIELDS_mailinglist === ',', 'Explicit empty survives native parameter persistence');
+	unset($user->conf->MAIN_SELECTEDFIELDS_mailinglist); $posted = array();
+	$hooks->doActions($params, $object, $action, $manager);
+	echo "OK: SQL date bounds, invalid date, native count, URL parameters, chronological ASC/DESC before LIMIT, explicit empty preference.\n";
+
 	// Optional real native HookManager cycle, with only discovery/SQL simulated.
 	$core = $argv[1] ?? '';
 	if ($core !== '') {
@@ -127,7 +171,7 @@ try {
 	}
 	echo "OK: grouped SQL, native page scope, permissions, two entities, null/absent dates, SMS, preferences, repeated hooks, SQL error.\n";
 } finally {
-	foreach (array('comm/mailing/class/mailing.class.php', 'core/class/html.form.class.php') as $file) unlink($temporary.'/'.$file);
-	foreach (array('comm/mailing/class', 'comm/mailing', 'comm', 'core/class', 'core') as $dir) rmdir($temporary.'/'.$dir);
+	foreach (array('comm/mailing/class/mailing.class.php', 'core/class/html.form.class.php', 'core/lib/functions2.lib.php') as $file) unlink($temporary.'/'.$file);
+	foreach (array('comm/mailing/class', 'comm/mailing', 'comm', 'core/class', 'core/lib', 'core') as $dir) rmdir($temporary.'/'.$dir);
 	rmdir($temporary);
 }
