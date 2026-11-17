@@ -18,6 +18,7 @@ function isModEnabled($module) { global $enabled; return $enabled; }
 function dol_print_date($date, $format) { check($format === 'dayhour', 'Native date/time format'); return gmdate('Y-m-d H:i', $date); }
 function dol_buildpath($path, $mode) { return $path; }
 function dol_syslog($message, $level) {}
+function getDolGlobalInt($key, $default = 0) { return $default; }
 class Mailing {}
 class ListTestLanguages {
 	public function load($catalogue) {}
@@ -81,6 +82,31 @@ try {
 	check($hooks->printFieldListTitle($params, $object, $action, $manager) === -1, 'SQL failure reported');
 	$hooks->printFieldListFooter($params, $object, $action, $manager);
 	check($hooks->resprints === '', 'SQL failure never looks like absent scheduling');
+	// Optional real native HookManager cycle, with only discovery/SQL simulated.
+	$core = $argv[1] ?? '';
+	if ($core !== '') {
+		check(is_file($core.'/core/class/hookmanager.class.php'), 'Native HookManager available');
+		require_once $core.'/core/class/hookmanager.class.php';
+		$manager = new HookManager($db);
+		$manager->contextarray = array('main', 'mailinglist');
+		$manager->hooks = array('main' => array('lmdb' => $hooks), 'mailinglist' => array('lmdb' => $hooks));
+		$manager->hooksSorted = array('main' => array('50:lmdb' => $hooks), 'mailinglist' => array('50:lmdb' => $hooks));
+		$db->fail = false;
+		$before = $db->queries;
+		check($manager->executeHooks('doActions', array(), $object, $action) === 0, 'Native doActions stays neutral');
+		check($manager->executeHooks('printFieldListTitle', $params, $object, $action) === 0, 'Native title hook stays neutral');
+		check($db->queries === $before + 1, 'Native manager executes LMDB once despite two contexts');
+		check($manager->executeHooks('printFieldListFooter', $params, $object, $action) === 0, 'Native footer hook stays neutral');
+		check(strpos($manager->resPrint, 'lmdb-mailing-list-dates') !== false, 'Native manager consumes the rendered payload');
+		check($hooks->resprints === null, 'Native manager resets resprints to null');
+		$manager->executeHooks('printFieldListFooter', $params, $object, $action);
+		check($manager->resPrint === '', 'No payload survives the native reset/repeated call');
+		$params['arrayfields'][ActionsLmdb::SCHEDULED_SEND_FIELD]['checked'] = 0;
+		$manager->executeHooks('printFieldListTitle', $params, $object, $action);
+		$manager->executeHooks('printFieldListFooter', $params, $object, $action);
+		check($manager->resPrint === '' && $db->queries === $before + 1, 'Hidden column stays omitted through native manager');
+		echo "OK: real native HookManager, duplicate contexts, output consumption, null reset and successive calls.\n";
+	}
 	echo "OK: grouped SQL, native page scope, permissions, two entities, null/absent dates, SMS, preferences, repeated hooks, SQL error.\n";
 } finally {
 	foreach (array('comm/mailing/class/mailing.class.php', 'core/class/html.form.class.php') as $file) unlink($temporary.'/'.$file);

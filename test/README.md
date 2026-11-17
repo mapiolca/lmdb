@@ -76,3 +76,36 @@ Vérification du 2026-11-17 sous PHP 8.5.7 : test réussi ; PHPStan niveau 5, ci
 Lecture des sources `htdocs/comm/mailing/list.php` des tags officiels 20.0.0, 21.0.0, 22.0.0, 23.0.0 et 24.0.0 : contextes `mailinglist`, hooks `doActions`, `printFieldListTitle` et `printFieldListFooter`, identifiant `data-rowid` disponible ; aucun hook de rendu par ligne. La liste projet utilise `projectmailing` en v24 et dans le checkout local. La branche distante `25.0` était inaccessible (HTTP 404) : v25 reste ciblée mais non vérifiée. Cette lecture ne constitue pas une exécution de ces cinq versions.
 
 Après déploiement : réactiver LMDB par entité et vérifier la liste normale, le filtre destinataire, l’onglet projet lorsque disponible, la pagination 20/50/100, la préférence afficher/masquer, les cases d’action à gauche et à droite, les listes vides, deux entités et la date/heure avec le fuseau utilisateur. La colonne nécessite JavaScript ; sans lui la liste conserve sa structure native. La colonne n’ajoute aucun tri ni filtre de date. Aucun test PHP 8.0, instance MySQL/MariaDB ou Multicompany réelle n’a été exécuté.
+
+## Complément de recette du 2026-11-17 — PR #9
+
+Code fonctionnel examiné : `b603f9913bd52db658959a880b8930fc5e490681`, branche `feat/mailing-scheduled-date-column`, base `12b4acba9f12f55806db14ec59ba0007cde833bb`. Aucun correctif du code fonctionnel ajouté pendant cette recette.
+
+Le test accepte désormais le chemin d’un core pour exécuter son vrai `HookManager` :
+
+```sh
+php test/mailing_schedule_list_regression.php /chemin/dolibarr/htdocs
+```
+
+Résultat réussi sous PHP 8.5.7 avec les gestionnaires des sources mises en cache :
+
+| Source | Révision de référence | Résultat |
+|---|---|---|
+| 20.0.0 | `697bf01970740a3339cd99cf055b4428fc5e051c` | Réussi |
+| 21.0.0 | `fd970b582a4d8c5779a2958a4e9f4fce225cf085` | Réussi |
+| 22.0.0 | `49b9a6d19f3deb6d410c0e9b3310e95be4ea7710` | Réussi |
+| 23.0.0 | `57a1f05d490a7a80944a8232e9c613e6556d2704` | Réussi |
+| 24.0.0 | `769c7db907099643558e77d7002c109cfda919e5` | Réussi |
+| Checkout local | `029a92fb538e90db684dec8b6ba80ee5a6638efd` | Réussi |
+
+Les appels `doActions`, `printFieldListTitle` et `printFieldListFooter` traversent réellement le gestionnaire natif : retour neutre, absence de double lecture lorsque LMDB figure dans deux contextes, consommation de la sortie, réinitialisation native de `resprints` à `null`, second appel sans contamination et colonne masquée sans lecture. La découverte du descripteur et des contextes, la session et la base restent simulées. Ces résultats ne valident pas des instances complètes v20–v25.
+
+Le test SQL isolé, la non-régression des traductions FR/EN et PHPStan niveau 5 ont été réexécutés avec succès. La recette distante sur `https://develop.lesmetiersdubatiment.fr` est **bloquée avant déploiement**, et ne constitue donc pas une validation de la colonne :
+
+- session Dolibarr connectée, version affichée `25.0.0-alpha`, compte Codex, entité TEST 1 ; TEST 2 disponible ; module LMDB 2.0.0 actif ; liste initiale de deux emailings consultée, sans nouvelle colonne ;
+- dépôt cPanel **DEVELOP - LMDB**, répertoire servi `develop/htdocs/custom/lmdb`, branche initiale et finale confirmée `feat/attestations-conformite-loi-finance`, HEAD `4872f948f37a2e651a687a7abad6e99d919e2cc6` ;
+- saisie de la nouvelle branche sans bascule effective, puis `Update from Remote` refusé avec « The system could not contact the remote repository. » ; le même échec est constaté depuis la session cPanel renouvelée ;
+- tentative de diagnostic par un terminal distinct sans résultat de commande observable ; aucun checkout réussi, aucun rechargement ou changement de réglage du module, aucune modification d’emailing ni aucun envoi ;
+- preuve locale ignorée : `test/.runtime/mailing-deployment-blocked.jpg`.
+
+À reprendre après rétablissement de l’accès Git du serveur : déployer la branche, confirmer son SHA et la présence du script servi, recharger LMDB dans chaque entité, puis exécuter la recette navigateur listée plus haut. Ne pas assimiler l’absence de colonne sur l’ancien code à un échec du patch. Aucun contrôle CI n’était affiché sur la PR #9 lors de cette vérification.
