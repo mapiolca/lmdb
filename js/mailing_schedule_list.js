@@ -19,7 +19,11 @@
 			cell.className = className;
 			cell.textContent = text;
 		}
-		insertCell(header, data.label, 'liste_titre center nowrap');
+		var heading = document.createElement('th');
+		heading.className = 'wrapcolumntitle liste_titre center';
+		heading.scope = 'col';
+		heading.textContent = data.label;
+		header.insertBefore(heading, header.cells[data.index] || null);
 		var filter = table.querySelector('tr.liste_titre_filter');
 		if (filter) insertCell(filter, '', 'liste_titre');
 		table.querySelectorAll('tr[data-rowid]').forEach(function (row) {

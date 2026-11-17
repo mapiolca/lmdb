@@ -204,7 +204,7 @@ class ActionsLmdb
 		$langs->load('lmdb@lmdb');
 		$data = json_encode(array(
 			'index' => $this->mailingListColumnIndex,
-			'label' => $langs->trans('LmdbScheduledMailingSendAt'),
+			'label' => $langs->transnoentities('LmdbScheduledMailingSendAt'),
 			'dates' => (object) $this->mailingListDates,
 		), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 		$this->resprints = '<script type="application/json" id="lmdb-mailing-list-dates">'.$data.'</script>';

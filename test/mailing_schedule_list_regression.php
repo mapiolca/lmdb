@@ -22,7 +22,8 @@ function getDolGlobalInt($key, $default = 0) { return $default; }
 class Mailing {}
 class ListTestLanguages {
 	public function load($catalogue) {}
-	public function trans($key) { return $key; }
+	public function trans($key) { return $key === 'LmdbScheduledMailingSendAt' ? 'Date et heure d’envoi programm&eacute;es' : $key; }
+	public function transnoentities($key) { return html_entity_decode($this->trans($key), ENT_QUOTES, 'UTF-8'); }
 }
 class ListTestUser {
 	public $allowed = true;
@@ -60,6 +61,7 @@ try {
 	check($hooks->printFieldListTitle($params, $object, $action, $manager) === 0, 'Native list continues');
 	$data = payload($hooks, $params, $object, $action, $manager);
 	check($data['dates'] === array(1 => '2026-11-20 12:30'), 'Page, project, null date and entity scope preserved');
+	check($data['label'] === 'Date et heure d’envoi programmées', 'Text payload contains Unicode, not HTML entities');
 	check($data['index'] === 6 && $db->queries === 1, 'One grouped query per page');
 	$hooks->printFieldListFooter($params, $object, $action, $manager);
 	check($hooks->resprints === '', 'No stale output after repeated footer call');
