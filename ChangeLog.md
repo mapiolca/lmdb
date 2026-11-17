@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 2.0.0 - 2026-10-24
+
+- Ajout des attestations individuelles de conformité Loi Finance : catalogue préchargé avec les familles 23.0 et 24.0 désactivées, avec périmètre fonctionnel de référence et exclusions à vérifier par l’émetteur (25.0 alpha exclue), avec ajout/édition en modales à pied natif, activation et suppression protégée des entrées inutilisées, messages de validation nommant les champs à compléter, brouillons, validation avec instantané légal, annulation et PDF fiscal à deux volets avec en-têtes documentaires Dolibarr, corps mis en forme et pied natif respectant les réglages ; encadrés d’adresse limités à la première page et périmètres longs répartis entre pages sans grand blanc avant le texte.
+- Intégration aux menus Outils, contacts liés avec rôles natifs et restriction des contacts externes au tiers, onglet documentaire complet (compteurs, métadonnées et liens), fichiers joints avec glisser-déposer natif, Agenda et Notifications natifs, modèles de courriel dédiés, numérotation des brouillons `(PROV{ID})`, modèle Standard fixe et modèle Advanced à masque personnalisable avec aide et exemple natifs, confirmations en modales, position native de la colonne d’actions, infobulle Ajax détaillée et sécurisée, champs de fiche au format natif et aperçu PDF dans la bannière, permissions, export et API REST.
+- Documents et partages Multicompany rattachés à l’entité propriétaire ; ville de signature issue des coordonnées natives de l’entité, signature PNG privée et protection contre le rejeu des envois.
+- Rétablissement du logo société dans la liste des modules ; pictogramme certificat bleu pour les attestations et badges natifs dans la page Compatibilité, avec raisons affichées uniquement en cas d’indisponibilité.
+- Mise à jour : réactiver LMDB par entité pour installer les tables et actualiser les déclarations natives, puis configurer les versions attestables et l’émetteur. Les réglages existants sont conservés ; un ancien masque personnalisé de préversion est repris par Advanced lors de la première mise à jour.
+
 ## 1.2.2 - 2026-09-11
 
 - Désactivation de l’envoi automatique LMDB des factures récurrentes dès Dolibarr v24, préversions comprises, au profit du mécanisme natif ; maintien du traitement LMDB en v20–v23.

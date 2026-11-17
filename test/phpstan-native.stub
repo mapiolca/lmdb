@@ -1,0 +1,16 @@
+<?php
+/** The native descriptor accepts structured hooks (data/entity) even though its
+ * v24 PHPDoc only describes a list. No runtime symbols or errors are suppressed. */
+class DolibarrModules
+{
+	/** @var array<string,0|1|list<string>|array{data:list<string>,entity:string}> */
+	public $module_parts;
+}
+
+/** The native v21+ implementation and return PHPDoc support mode 2, but the
+ * v24 parameter PHPDoc incorrectly restricts it to 0|1. Verified in formfile. */
+class FormFile
+{
+	/** @param int<0,2> $nooutput */
+	public function form_attach_new_file($url, $title = '', $addcancel = 0, $sectionid = 0, $perm = 1, $size = 50, $object = null, $options = '', $useajax = 1, $savingdocmask = '', $linkfiles = 1, $htmlname = 'formuserfile', $accept = '', $sectiondir = '', $usewithoutform = 0, $capture = 0, $disablemulti = 0, $nooutput = 0) {}
+}

@@ -46,7 +46,7 @@ class InterfaceLmdbTriggers extends DolibarrTriggers
 	 * @param User         $user   User responsible for the event
 	 * @param Translate    $langs  Translation handler
 	 * @param Conf         $conf   Dolibarr configuration
-	 * @return int <0 on error, 0 on success
+	 * @return int Negative on error, zero on success
 	 */
 	public function runTrigger($action, $object, User $user, Translate $langs, Conf $conf)
 	{
@@ -68,6 +68,12 @@ class InterfaceLmdbTriggers extends DolibarrTriggers
 			return 0;
 		}
 
+		if ($action === 'LMDB_ATTESTATION_UPDATE' && $object instanceof LmdbAttestation && isset($object->context['lmdb_attestation_mail_id'])) {
+			if (!$user->hasRight('lmdb','lmdbattestation','send')) { return -1; }
+			$sql = 'UPDATE '.MAIN_DB_PREFIX."lmdb_attestation_email SET status='sent',date_sent='".$this->db->idate(dol_now())."' WHERE rowid=".(int)$object->context['lmdb_attestation_mail_id'].' AND fk_attestation='.(int)$object->id.' AND entity='.(int)$object->entity." AND status='pending'";
+			if (!$this->db->query($sql)) { $this->error=$this->db->lasterror(); return -1; }
+			return 0;
+		}
 		if (!($object instanceof Facture)) {
 			return 0;
 		}
