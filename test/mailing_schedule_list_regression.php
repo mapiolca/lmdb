@@ -19,6 +19,8 @@ function dol_print_date($date, $format) { check($format === 'dayhour', 'Native d
 function dol_buildpath($path, $mode) { return $path; }
 function dol_syslog($message, $level) {}
 function getDolGlobalInt($key, $default = 0) { return $default; }
+$posted = array();
+function GETPOST($key, $filter) { global $posted; return $posted[$key] ?? ''; }
 class Mailing {}
 class ListTestLanguages {
 	public function load($catalogue) {}
@@ -27,6 +29,8 @@ class ListTestLanguages {
 }
 class ListTestUser {
 	public $allowed = true;
+	public $conf;
+	public function __construct() { $this->conf = new stdClass(); }
 	public function hasRight($module, $right) { check($module === 'mailing' && $right === 'lire', 'Direct native reading permission'); return $this->allowed; }
 }
 class ListTestDatabase {
@@ -48,6 +52,7 @@ try {
 	$conf = (object) array('entity' => 1);
 	$langs = new ListTestLanguages(); $user = new ListTestUser();
 	$hooks = new ActionsLmdb($db); $object = new Mailing(); $action = ''; $manager = null;
+	$contextpage = 'mailinglist';
 	$params = array('context' => 'mailinglist');
 	$hooks->doActions($params, $object, $action, $manager);
 	check(isset($arrayfields[ActionsLmdb::SCHEDULED_SEND_FIELD]), 'Column registered before native preference handling');
@@ -80,7 +85,18 @@ try {
 		$hooks->printFieldListFooter($p, $object, $action, $manager);
 		check($db->queries === $before && $hooks->resprints === '', $case.': no data read or leaked');
 	}
-	$user->allowed = true; $enabled = true; $db->fail = true;
+	$user->allowed = true; $enabled = true;
+	$user->conf->MAIN_SELECTEDFIELDS_mailinglist = '';
+	$hooks->doActions($params, $object, $action, $manager);
+	check($arrayfields[ActionsLmdb::SCHEDULED_SEND_FIELD]['checked'] === 0, 'An explicitly empty native preference hides the only optional column');
+	unset($user->conf->MAIN_SELECTEDFIELDS_mailinglist);
+	$posted = array('formfilteraction' => 'listafterchangingselectedfields', 'selectedfields' => '');
+	$hooks->doActions($params, $object, $action, $manager);
+	check($arrayfields[ActionsLmdb::SCHEDULED_SEND_FIELD]['checked'] === 0, 'Unchecking the last optional column applies on the save request');
+	$posted = array();
+	$hooks->doActions($params, $object, $action, $manager);
+	check($arrayfields[ActionsLmdb::SCHEDULED_SEND_FIELD]['checked'] === 1, 'Absent preference retains the visible default');
+	$db->fail = true;
 	check($hooks->printFieldListTitle($params, $object, $action, $manager) === -1, 'SQL failure reported');
 	$hooks->printFieldListFooter($params, $object, $action, $manager);
 	check($hooks->resprints === '', 'SQL failure never looks like absent scheduling');

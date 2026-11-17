@@ -234,8 +234,19 @@ class ActionsLmdb
 			if (!is_array($arrayfields)) {
 				$arrayfields = array();
 			}
+			global $contextpage;
+			$preferenceKey = 'MAIN_SELECTEDFIELDS_'.(string) $contextpage;
+			// The native selector treats an empty saved list as default selection.
+			// Here this is the only optional column: an explicit empty value hides it.
+			$checked = 1;
+			if ((isset($user->conf) && is_object($user->conf)
+				&& isset($user->conf->{$preferenceKey}) && $user->conf->{$preferenceKey} === '')
+				|| (GETPOST('formfilteraction', 'alphanohtml') === 'listafterchangingselectedfields'
+					&& GETPOST('selectedfields', 'alphanohtml') === '')) {
+				$checked = 0;
+			}
 			$arrayfields[self::SCHEDULED_SEND_FIELD] = array(
-				'label' => 'LmdbScheduledMailingSendAt', 'checked' => 1,
+				'label' => 'LmdbScheduledMailingSendAt', 'checked' => $checked,
 				'enabled' => 1, 'position' => 1000,
 			);
 		}
