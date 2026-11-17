@@ -208,7 +208,7 @@ class ActionsLmdb
 			'dates' => (object) $this->mailingListDates,
 		), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 		$this->resprints = '<script type="application/json" id="lmdb-mailing-list-dates">'.$data.'</script>';
-		$this->resprints .= '<script src="'.dol_buildpath('/lmdb/js/mailing_schedule_list.js', 1).'"></script>';
+		$this->resprints .= '<script src="'.dol_buildpath('/lmdb/js/mailing_schedule_list.js', 1).'?v='.filemtime(__DIR__.'/../js/mailing_schedule_list.js').'"></script>';
 		$this->mailingListColumnIndex = null;
 		$this->mailingListDates = array();
 		return 0;
