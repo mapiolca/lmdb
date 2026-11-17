@@ -59,6 +59,10 @@ Après mise à jour, réactiver LMDB dans chaque entité concernée pour install
 
 LMDB ajoute par le hook natif `mailingcard` le champ **Date et heure d'envoi programmées** sur la fiche des emailings Dolibarr. Le champ utilise le sélecteur date/heure du core et peut être renseigné ou effacé tant que la campagne est au brouillon ou validée. Une valeur vide désactive la programmation. Les dates sont conservées dans la table normalisée `lmdb_mailing_schedule`, propre au module et filtrée par entité ; aucune table d'extrafields du module Emailing n'est requise.
 
+La liste native des emailings et la liste des emailings d’un projet affichent également la colonne **Date et heure d'envoi programmées**, juste avant le statut. Elle reprend la date de la fiche, au format date/heure Dolibarr, et reste vide sans programmation. Le sélecteur natif de colonnes permet de la masquer. Après déploiement, réactiver LMDB dans chaque entité concernée pour charger les nouveaux contextes de hooks ; les programmations existantes sont conservées.
+
+L’affichage de cette colonne nécessite JavaScript. Les listes natives vérifiées en v20–v24 ne proposent pas de hook de rendu par ligne : LMDB complète donc le tableau depuis le hook de pied de liste, après une lecture groupée limitée à la requête native de la page et à l’entité courante. Cette colonne est consultative, sans filtre ni tri dédié. Aucune modification du core, aucun envoi et aucune nouvelle table ne sont nécessaires. Sans JavaScript, la liste native reste utilisable et la date reste consultable sur la fiche.
+
 La tâche native **Envoi programmé LMDB des emailings natifs** s'exécute toutes les cinq minutes. Elle :
 
 - sélectionne uniquement les campagnes email de l'entité courante ayant une date programmée atteinte ;

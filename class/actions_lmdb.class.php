@@ -23,6 +23,12 @@ class ActionsLmdb
 {
 	const SCHEDULED_SEND_FIELD = 'lmdb_scheduled_send_at';
 
+	/** @var array<int,string> Dates for the current native mailing result page. */
+	private $mailingListDates = array();
+
+	/** @var int|null Insertion position before the native status column. */
+	private $mailingListColumnIndex;
+
 	/** @var DoliDB */
 	public $db;
 
@@ -118,6 +124,97 @@ class ActionsLmdb
 	}
 
 	/**
+	 * Only enrich the native mailing lists, including the project's mailing tab.
+	 * Permissions remain explicit in each entry point.
+	 * @param array<string,mixed> $parameters Hook parameters
+	 * @param CommonObject|null $object Native list object
+	 * @return bool
+	 */
+	private function isMailingListContext($parameters, $object)
+	{
+		$context = isset($parameters['context']) && is_string($parameters['context']) ? $parameters['context'] : '';
+		return $object instanceof Mailing && isModEnabled('lmdb') && isModEnabled('mailing')
+			&& (in_array('mailinglist', explode(':', $context), true)
+				|| in_array('projectmailing', explode(':', $context), true));
+	}
+
+	/**
+	 * Read dates in one query joined to the native filtered and paginated query.
+	 * Native mailing lists v20-v24 expose no per-row rendering hook.
+	 * @param array<string,mixed> $parameters Hook parameters
+	 * @param CommonObject|null $object Native list object
+	 * @param string $action Current action
+	 * @param HookManager $hookmanager Native manager
+	 * @return int
+	 */
+	public function printFieldListTitle($parameters, &$object, &$action, $hookmanager)
+	{
+		global $conf, $user, $langs, $sql;
+		$this->mailingListDates = array();
+		$this->mailingListColumnIndex = null;
+		$this->resprints = '';
+		if (!$this->isMailingListContext($parameters, $object) || !$user->hasRight('mailing', 'lire')
+			|| empty($parameters['arrayfields'][self::SCHEDULED_SEND_FIELD]['checked'])
+			|| !isset($parameters['totalarray']['nbfield'])) {
+			return 0;
+		}
+
+		if (!is_string($sql) || $sql === '') {
+			return 0;
+		}
+		// Reuse the native query: recipient/project filters, rights and pagination
+		// stay authoritative. Do not consume or replace the native result cursor.
+		$scheduleSql = "SELECT ms.fk_mailing, ms.scheduled_send_at FROM ".MAIN_DB_PREFIX."lmdb_mailing_schedule AS ms";
+		$scheduleSql .= " INNER JOIN (".$sql.") AS lmdb_page ON lmdb_page.rowid = ms.fk_mailing";
+		$scheduleSql .= " INNER JOIN ".MAIN_DB_PREFIX."mailing AS m ON m.rowid = ms.fk_mailing AND m.entity = ms.entity";
+		$scheduleSql .= " WHERE ms.entity = ".((int) $conf->entity)." AND m.messtype = 'email'";
+		$schedules = $this->db->query($scheduleSql);
+		if (!$schedules) {
+			$langs->load('lmdb@lmdb');
+			$this->error = $langs->trans('LmdbScheduledMailingStorageError');
+			dol_syslog(__METHOD__.': failed to read scheduled mailing dates', LOG_ERR);
+			return -1;
+		}
+		while (is_object($schedule = $this->db->fetch_object($schedules))) {
+			if ($schedule->scheduled_send_at !== null && $schedule->scheduled_send_at !== '') {
+				$this->mailingListDates[(int) $schedule->fk_mailing] = dol_print_date($this->db->jdate($schedule->scheduled_send_at), 'dayhour');
+			}
+		}
+		$this->db->free($schedules);
+		$this->mailingListColumnIndex = (int) $parameters['totalarray']['nbfield'];
+		return 0;
+	}
+
+	/**
+	 * Add display-only cells to the native table; never change its pagination.
+	 * @param array<string,mixed> $parameters Hook parameters
+	 * @param CommonObject|null $object Native list object
+	 * @param string $action Current action
+	 * @param HookManager $hookmanager Native manager
+	 * @return int
+	 */
+	public function printFieldListFooter($parameters, &$object, &$action, $hookmanager)
+	{
+		global $user, $langs;
+		$this->resprints = '';
+		if (!$this->isMailingListContext($parameters, $object) || !$user->hasRight('mailing', 'lire')
+			|| $this->mailingListColumnIndex === null) {
+			return 0;
+		}
+		$langs->load('lmdb@lmdb');
+		$data = json_encode(array(
+			'index' => $this->mailingListColumnIndex,
+			'label' => $langs->trans('LmdbScheduledMailingSendAt'),
+			'dates' => (object) $this->mailingListDates,
+		), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+		$this->resprints = '<script type="application/json" id="lmdb-mailing-list-dates">'.$data.'</script>';
+		$this->resprints .= '<script src="'.dol_buildpath('/lmdb/js/mailing_schedule_list.js', 1).'"></script>';
+		$this->mailingListColumnIndex = null;
+		$this->mailingListDates = array();
+		return 0;
+	}
+
+	/**
 	 * Persist the scheduled send date from the native mailing card.
 	 *
 	 * @param array<string,mixed> $parameters Hook parameters
@@ -130,6 +227,18 @@ class ActionsLmdb
 	{
 		global $conf, $langs, $user;
 		$langs->load('lmdb@lmdb');
+
+		// v20-v24 have no completeArrayFields hook on the mailing list.
+		if ($this->isMailingListContext($parameters, $object) && $user->hasRight('mailing', 'lire')) {
+			global $arrayfields;
+			if (!is_array($arrayfields)) {
+				$arrayfields = array();
+			}
+			$arrayfields[self::SCHEDULED_SEND_FIELD] = array(
+				'label' => 'LmdbScheduledMailingSendAt', 'checked' => 1,
+				'enabled' => 1, 'position' => 1000,
+			);
+		}
 
 		if ($action !== 'save_lmdb_mailing_schedule') {
 			return 0;

@@ -60,3 +60,19 @@ Non-régression des traductions exécutée avec la classe `Translate` et les cat
 Limites : ces contrôles ne constituent pas des tests sur des instances Dolibarr complètes v20–v25. PHP 8.0, MySQL/MariaDB, Multicompany réel, navigateur, SMTP et basculement métier n’ont pas été exécutés. PHPStan n’est ni installé ni configuré dans ce module. Les règles de droits, CSRF, PDF, SQL métier et campagnes ne sont pas modifiées ; aucune notification réelle n’a été envoyée.
 
 Recette à effectuer après déploiement : comparer avant/après les valeurs des extrafields, constantes et paramètres cron dans deux entités ; réactiver LMDB ; constater le masquage des anciennes options ; configurer le statut et le modèle natifs de chaque facture récurrente ; vérifier un envoi sur une instance de test et l’absence de second envoi par l’ancien cron LMDB. Les anciennes options LMDB ne sont pas migrées automatiquement vers les options natives.
+
+
+# Colonne des dates d’envoi programmées
+
+```sh
+php test/mailing_schedule_list_regression.php
+DOLIBARR_PATH=/chemin/dolibarr/htdocs python3 test/run_phpstan.py
+```
+
+Le premier test exécute les hooks du module avec une base SQLite en mémoire : requête native filtrée/paginée réutilisée, une seule lecture groupée des programmations, deux entités, filtre projet, date nulle ou absente, campagne SMS, droit de lecture refusé, module désactivé, colonne masquée, appels successifs et erreur SQL. SQLite vérifie le comportement SQL isolé ; cela ne remplace pas un essai MySQL/MariaDB avec Multicompany et le gestionnaire de hooks natif.
+
+Vérification du 2026-11-17 sous PHP 8.5.7 : test réussi ; PHPStan niveau 5, cible syntaxique PHP 8.0 via `test/run_phpstan.py`, aucune erreur avec les déclarations du checkout core `029a92fb538e90db684dec8b6ba80ee5a6638efd`. Recette navigateur sur un tableau HTML local avec le script réel et le jQuery du core : date affichée avant le statut, absence de date vide, alignement des cellules et double initialisation réussis. Ce tableau est une simulation de DOM, sans instance distante ni déploiement.
+
+Lecture des sources `htdocs/comm/mailing/list.php` des tags officiels 20.0.0, 21.0.0, 22.0.0, 23.0.0 et 24.0.0 : contextes `mailinglist`, hooks `doActions`, `printFieldListTitle` et `printFieldListFooter`, identifiant `data-rowid` disponible ; aucun hook de rendu par ligne. La liste projet utilise `projectmailing` en v24 et dans le checkout local. La branche distante `25.0` était inaccessible (HTTP 404) : v25 reste ciblée mais non vérifiée. Cette lecture ne constitue pas une exécution de ces cinq versions.
+
+Après déploiement : réactiver LMDB par entité et vérifier la liste normale, le filtre destinataire, l’onglet projet lorsque disponible, la pagination 20/50/100, la préférence afficher/masquer, les cases d’action à gauche et à droite, les listes vides, deux entités et la date/heure avec le fuseau utilisateur. La colonne nécessite JavaScript ; sans lui la liste conserve sa structure native. La colonne n’ajoute aucun tri ni filtre de date. Aucun test PHP 8.0, instance MySQL/MariaDB ou Multicompany réelle n’a été exécuté.
